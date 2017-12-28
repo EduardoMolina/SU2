@@ -241,12 +241,16 @@ CEulerVariable::CEulerVariable(su2double val_density, su2double *val_velocity, s
     unsigned short nVar_Avg;
     
     if (nDim == 2){
-      /*--- Density, U, V, E, Pressure, Cfx, Cfy*/
-      nVar_Avg = nVar + 3;
+      /*--- Density, U, V, E, Pressure, Cfx, Cfy, nut/nu*/
+      nVar_Avg = nVar + 4;
     }
     else{
-      /*--- Density, U, V, W, E, Pressure, Cfx, Cfy, Cfz*/
-      nVar_Avg = nVar + 4;
+      /*--- Density, U, V, W, E, Pressure, Cfx, Cfy, Cfz, nut/nu */
+      nVar_Avg = nVar + 5;
+    }
+    
+    if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+      nVar_Avg += 1;
     }
     
     Solution_Avg = new su2double [nVar_Avg];

@@ -626,7 +626,20 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
       if (config->GetKind_Solver() == RANS){
         solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+1, Aux_Frict_x[iPoint]);
         solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+2, Aux_Frict_y[iPoint]);
-        if (geometry->GetnDim() == 3) solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+3, Aux_Frict_z[iPoint]);
+          if (geometry->GetnDim() == 3){
+            solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+3, Aux_Frict_z[iPoint]);
+            solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+4, solver->node[iPoint]->GetEddyViscosity()/solver->node[iPoint]->GetLaminarViscosity());
+            if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+              solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+5, solver->node[iPoint]->GetRoe_Dissipation());
+            }
+          }
+          else{
+            solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+3, solver->node[iPoint]->GetEddyViscosity()/solver->node[iPoint]->GetLaminarViscosity());
+            if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+              solver->node[iPoint]->SetSolution_Avg(solver->GetnVar()+4, solver->node[iPoint]->GetRoe_Dissipation());
+              //cout << solver->node[iPoint]->GetRoe_Dissipation() << endl;
+            }
+          }
       }
         
       if (geometry->GetnDim() == 2){

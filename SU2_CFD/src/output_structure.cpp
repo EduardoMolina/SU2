@@ -10606,6 +10606,12 @@ void COutput::LoadLocalData_Flow(CConfig *config, CGeometry *geometry, CSolver *
           nVar_Par +=1;
           Variable_Names.push_back("Mean_Cfz");
         }
+        nVar_Par +=1;
+        Variable_Names.push_back("Mean_NutNu");
+        if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+          nVar_Par +=1;
+          Variable_Names.push_back("Mean_RoeDissipation");
+        }
       }
       
       if (geometry->GetnDim()==2){
@@ -10879,6 +10885,20 @@ void COutput::LoadLocalData_Flow(CConfig *config, CGeometry *geometry, CSolver *
             if (geometry->GetnDim() == 3){
               Local_Data[jPoint][iVar] = solver[FLOW_SOL]->node[iPoint]->GetSolution_Avg(nVar_First+3) / Avg_Iter;
               iVar++;
+              Local_Data[jPoint][iVar] = solver[FLOW_SOL]->node[iPoint]->GetSolution_Avg(nVar_First+4) / Avg_Iter;
+                iVar++;
+              if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+                Local_Data[jPoint][iVar] = solver[FLOW_SOL]->node[iPoint]->GetSolution_Avg(nVar_First+5) / Avg_Iter;
+                iVar++;
+              }
+            }
+            else{
+              Local_Data[jPoint][iVar] = solver[FLOW_SOL]->node[iPoint]->GetSolution_Avg(nVar_First+3) / Avg_Iter;
+              iVar++;
+              if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+                Local_Data[jPoint][iVar] = solver[FLOW_SOL]->node[iPoint]->GetSolution_Avg(nVar_First+4) / Avg_Iter;
+                iVar++;
+              }
             }
           }
           

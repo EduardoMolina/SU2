@@ -910,7 +910,7 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
 
 CEulerSolver::~CEulerSolver(void) {
 
-  unsigned short iVar, iMarker, iPoint;
+  unsigned short iVar, iMarker;
   unsigned long iVertex;
 
   /*--- Array deallocation ---*/
@@ -3973,7 +3973,6 @@ void CEulerSolver::SetInitialCondition(CGeometry **geometry, CSolver ***solver_c
 
   unsigned long iPoint;
   unsigned short iMesh, iDim;
-  unsigned short iVar;
     
   su2double X0[3] = {0.0,0.0,0.0}, X1[3] = {0.0,0.0,0.0}, X2[3] = {0.0,0.0,0.0},
   X1_X0[3] = {0.0,0.0,0.0}, X2_X0[3] = {0.0,0.0,0.0}, X2_X1[3] = {0.0,0.0,0.0},
@@ -4212,7 +4211,20 @@ void CEulerSolver::SetInitialCondition(CGeometry **geometry, CSolver ***solver_c
       if (config->GetKind_Solver() == RANS){
         solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+1, Aux_Frict_x[iPoint]);
         solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+2, Aux_Frict_y[iPoint]);
-        if (nDim == 3) solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+3, Aux_Frict_z[iPoint]);
+          if (nDim == 3){
+            solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+3, Aux_Frict_z[iPoint]);
+            solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+4, solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetEddyViscosity()/solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetLaminarViscosity());
+            if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+              solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+5, solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetRoe_Dissipation());
+            }
+          }
+          else{
+            solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+3, solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetEddyViscosity()/solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetLaminarViscosity());
+            if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+              solver_container[MESH_0][FLOW_SOL]->node[iPoint]->SetSolution_Avg(nVar+4, solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetRoe_Dissipation());
+              //cout << solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetRoe_Dissipation() << endl;
+            }
+          }
       }
         
       if (nDim == 2){
@@ -4757,6 +4769,8 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
                   
         dissipation = max(0.05,1.0 - (0.5 * (f_d_i + f_d_j)));
         numerics->SetRoeDissipation(dissipation);
+        node[iPoint]->SetRoe_Dissipation(max(0.05,1.0 - f_d_i));
+        node[jPoint]->SetRoe_Dissipation(max(0.05,1.0 - f_d_j));
       }
       else if(config->GetKind_RoeLowDiss() == NTS){
         
@@ -4821,8 +4835,8 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         
         dissipation = max(0.5*(phi_hybrid_i+phi_hybrid_j),0.05);
         numerics->SetRoeDissipation(dissipation);
-        //cout << dissipation << endl;
-          
+        node[iPoint]->SetRoe_Dissipation(max(0.05,phi_hybrid_i));
+        node[jPoint]->SetRoe_Dissipation(max(0.05,phi_hybrid_j));
       }
       else if (config->GetKind_RoeLowDiss() == FD_DUCROS){
         su2double uijuij, nu, nut, dist_wall, k2, r_d, f_d_i, f_d_j;
@@ -5069,12 +5083,12 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         numerics->SetRoeDissipation(dissipation);
       }
       
-      /*--- Exporting Roe Low Dissipation ---*/
-      
-      if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
-        node[iPoint]->SetRoe_Dissipation(dissipation);
-        node[jPoint]->SetRoe_Dissipation(dissipation);
-      }
+//      /*--- Exporting Roe Low Dissipation ---*/
+//
+//      if (config->GetKind_RoeLowDiss() != NO_ROELOWDISS){
+//        node[iPoint]->SetRoe_Dissipation(dissipation);
+//        node[jPoint]->SetRoe_Dissipation(dissipation);
+//      }
 
       /*--- Recompute the extrapolated quantities in a
        thermodynamic consistent way  ---*/

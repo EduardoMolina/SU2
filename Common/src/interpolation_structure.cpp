@@ -287,10 +287,10 @@ void CInterpolator::ReconstructBoundary(unsigned long val_zone, int val_marker){
     
   CGeometry *geom = Geometry[val_zone][MESH_0];
     
-  int nProcessor, rank, iRank;
+  int nProcessor, rank;
   unsigned long iVertex, jVertex, kVertex;
     
-  unsigned long count, iTmp, iTmp2, *uptr, tmp_index, tmp_index_2, dPoint, EdgeIndex, jEdge, nEdges, nNodes, nVertex, iDim, nDim, iPoint;
+  unsigned long count, iTmp, *uptr, dPoint, EdgeIndex, jEdge, nEdges, nNodes, nVertex, iDim, nDim, iPoint;
    
   unsigned long nGlobalLinkedNodes, nLocalVertex, nLocalLinkedNodes;
     
