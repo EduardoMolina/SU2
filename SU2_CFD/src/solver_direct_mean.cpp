@@ -4651,7 +4651,6 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   
   bool neg_density_i = false, neg_density_j = false, neg_pressure_i = false, neg_pressure_j = false, neg_sound_speed = false;
   
-  
   bool implicit         = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool low_fidelity     = (config->GetLowFidelitySim() && (iMesh == MESH_1));
   bool second_order     = (((config->GetSpatialOrder_Flow() == SECOND_ORDER) || (config->GetSpatialOrder_Flow() == SECOND_ORDER_LIMITER)) && ((iMesh == MESH_0) || low_fidelity));
@@ -4662,7 +4661,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   bool low_mach_corr    = config->Low_Mach_Correction();
 
   su2double  dissipation;
-    
+
   /*--- Loop over all the edges ---*/
 
   for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
@@ -4723,7 +4722,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
           Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
         }
       }
-
+      
       /*--- Roe Low Dissipation ---*/
       if (config->GetKind_RoeLowDiss() == FD){
         su2double uijuij, nu, nut, dist_wall, k2, r_d, f_d_i, f_d_j;
@@ -16364,6 +16363,11 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
   unsigned long iPoint, jPoint, iEdge;
   
   bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
+  bool dual_time = ((config->GetUnsteady_Simulation() == DT_STEPPING_1ST) ||
+                    (config->GetUnsteady_Simulation() == DT_STEPPING_2ND));
+  bool ddes = (config->GetKind_HybridRANSLES() != NO_HYBRIDRANSLES);
+  
+  su2double  *R_ij;
   
   for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
     
@@ -16389,6 +16393,90 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
     if (config->GetKind_Turb_Model() == SST)
       numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->node[iPoint]->GetSolution(0),
                                      solver_container[TURB_SOL]->node[jPoint]->GetSolution(0));
+
+    /*--- Stochastic Backscatter ---*/
+    if ((config->GetIntIter() == 0) && dual_time && ddes){
+      su2double uijuij, nu, nut, dist_wall, k2, r_d, f_d_i, f_d_j;
+      su2double tke;
+      su2double Grad_Vel[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
+      
+      unsigned short iDim, jDim;
+      
+      R_ij= new su2double[6]; for (iDim = 0; iDim < 6; iDim++) R_ij[iDim] = 0.0;
+      /*--- For iPoint ---*/
+      
+      dist_wall = geometry->node[iPoint]->GetWall_Distance();
+      for (iDim = 0; iDim < nDim; iDim++) {
+        for (jDim = 0 ; jDim < nDim; jDim++) {
+          Grad_Vel[iDim][jDim] = node[iPoint]->GetGradient_Primitive(iDim+1, jDim);}}
+      
+      uijuij=0.0;
+      for(iDim=0;iDim<nDim;++iDim){
+        for(jDim=0;jDim<nDim;++jDim){
+          uijuij+= Grad_Vel[iDim][jDim]*Grad_Vel[iDim][jDim];}}
+      uijuij=sqrt(fabs(uijuij));
+      uijuij=max(uijuij,1e-10);
+      
+      nu = node[iPoint]->GetLaminarViscosity()/node[iPoint]->GetDensity();
+      nut = node[iPoint]->GetEddyViscosity()/node[iPoint]->GetDensity();
+      
+      k2=pow(0.41,2.0);
+      r_d= (nut+nu)/(uijuij*k2*pow(dist_wall, 2.0));
+      f_d_i= 1.0-tanh(pow(8.0*r_d,3.0));
+      
+      /*--- For jPoint ---*/
+      
+      dist_wall = geometry->node[jPoint]->GetWall_Distance();
+
+      for (iDim = 0; iDim < nDim; iDim++) {
+        for (jDim = 0 ; jDim < nDim; jDim++) {
+          Grad_Vel[iDim][jDim] = node[jPoint]->GetGradient_Primitive(iDim+1, jDim);}}
+      
+      uijuij=0.0;
+      for(iDim=0;iDim<nDim;++iDim){
+        for(jDim=0;jDim<nDim;++jDim){
+          uijuij+= Grad_Vel[iDim][jDim]*Grad_Vel[iDim][jDim];}}
+      uijuij=sqrt(fabs(uijuij));
+      uijuij=max(uijuij,1e-10);
+      
+      nu = node[jPoint]->GetLaminarViscosity()/node[jPoint]->GetDensity();
+      nut = node[jPoint]->GetEddyViscosity()/node[jPoint]->GetDensity();
+
+      k2=pow(0.41,2.0);
+      r_d= (nut+nu)/(uijuij*k2*pow(dist_wall, 2.0));
+      f_d_j= 1.0-tanh(pow(8.0*r_d,3.0));
+      
+      /*--- Check how TKE is calculated ----*/
+      for (iDim = 0; iDim < nDim; iDim++) {
+        for (jDim = 0 ; jDim < nDim; jDim++) {
+          Grad_Vel[iDim][jDim] = 0.5 * (node[iPoint]->GetGradient_Primitive(iDim+1, jDim) + node[jPoint]->GetGradient_Primitive(iDim+1, jDim));}}
+
+      tke = 3.33 * 0.5 * (node[iPoint]->GetEddyViscosity() + node[jPoint]->GetEddyViscosity()) * sqrt(
+            0.88 * pow((Grad_Vel[0][0]),2.0) +
+            0.88 * pow((Grad_Vel[1][1]),2.0) +
+            0.88 * pow((Grad_Vel[2][2]),2.0) +
+            0.5*pow((Grad_Vel[0][1] + Grad_Vel[1][0]),2.0) +
+            0.5*pow((Grad_Vel[1][2] + Grad_Vel[2][1]),2.0) +
+            0.5*pow((Grad_Vel[0][2] + Grad_Vel[2][0]),2.0));
+      
+      R_ij[0] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      R_ij[1] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      R_ij[2] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      R_ij[3] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      R_ij[4] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      R_ij[5] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      numerics->SetRandomTensor(R_ij);
+      node[iPoint]->SetRandom_Tensor(R_ij);
+    }
+    else if ((config->GetIntIter() > 0) && dual_time && ddes){
+      R_ij = node[iPoint]->GetRandom_Tensor();
+      numerics->SetRandomTensor(R_ij);
+    }
+    else{
+      unsigned short iDim;
+      R_ij= new su2double[6]; for (iDim = 0; iDim < 6; iDim++) R_ij[iDim] = 0.0;
+      numerics->SetRandomTensor(R_ij);
+    }
     
     /*--- Compute and update residual ---*/
     

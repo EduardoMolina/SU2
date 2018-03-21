@@ -1942,18 +1942,7 @@ void CTurbSASolver::Source_Residual(CGeometry *geometry, CSolver **solver_contai
       /*--- Set distance to the surface with IDDES distance ---*/
       
       numerics->SetDistance(distDES_tilde, 0.0);
-      solver_container[FLOW_SOL]->node[iPoint]->SetDES_LengthScale(distDES_tilde);
-      
-//      if (config->GetZonal_DES()){
-//        dist_zonal = config->GetZonal_Dist();
-//        if (dist_wall <= dist_zonal)
-//          numerics->SetDistance(dist_wall, 0.0);
-//        else
-//          numerics->SetDistance(distDES_tilde, 0.0);
-//      }
-//      else
-//        numerics->SetDistance(distDES_tilde, 0.0);
-      
+      solver_container[FLOW_SOL]->node[iPoint]->SetDES_LengthScale(distDES_tilde);            
     }
     else if (config->GetKind_HybridRANSLES()==SA_IZDES){
       su2double *Coord_i, *Coord_j, aux_delta, Delta_min;

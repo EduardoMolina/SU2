@@ -287,6 +287,17 @@ public:
   /*!
    * \brief A virtual member.
    */
+  virtual su2double *GetRandom_Tensor(void);
+  
+  /*!
+   * \brief A virtual member.
+   */
+  virtual void SetRandom_Tensor(su2double *val_random_tensor);
+
+  
+  /*!
+   * \brief A virtual member.
+   */
   virtual void SetSolution_New(void);
 
   /*!
@@ -3454,7 +3465,7 @@ private:
   su2double Vorticity[3];    /*!< \brief Vorticity of the fluid. */
   su2double StrainMag;       /*!< \brief Magnitude of rate of strain tensor. */
   su2double DES_LengthScale; /*!< \brief DES Length Scale. */
-  
+  su2double Random_Tensor[6]; /*!< \brief Random Tensor for Stochastic Backscatter. */
 public:
   
   /*!
@@ -3612,6 +3623,17 @@ public:
    * \brief Set the DES Length Scale.
    */
   void SetDES_LengthScale(su2double val_des_lengthscale);
+
+  /*!
+   * \brief Get the DES length scale
+   * \return Value of the DES length Scale.
+   */
+  su2double *GetRandom_Tensor(void);
+  
+  /*!
+   * \brief Set the DES Length Scale.
+   */
+  void SetRandom_Tensor(su2double *val_random_tensor);
   
 };
 

@@ -589,6 +589,10 @@ inline void CVariable::AddSolution_Avg(unsigned short val_var, su2double val_sol
 
 inline void CVariable::AddSolution_RMS(unsigned short val_var, su2double val_solution) { }
 
+inline su2double *CVariable::GetRandom_Tensor(void) { return NULL; }
+
+inline void CVariable::SetRandom_Tensor(su2double *val_random_tensor) { }
+
 inline su2double CEulerVariable::GetSolution_New(unsigned short val_var) { return Solution_New[val_var]; }
 
 inline su2double CEulerVariable::GetSolution_Avg(unsigned short val_var) { return Solution_Avg[val_var]; }
@@ -602,6 +606,13 @@ inline void CEulerVariable::SetRoe_Dissipation(su2double val_roe_dissipation) { 
 inline su2double CNSVariable::GetDES_LengthScale(void) { return DES_LengthScale; }
 
 inline void CNSVariable::SetDES_LengthScale(su2double val_des_lengthscale) { DES_LengthScale = val_des_lengthscale; }
+
+inline su2double *CNSVariable::GetRandom_Tensor(void) { return Random_Tensor; }
+
+inline void CNSVariable::SetRandom_Tensor(su2double *val_random_tensor) {
+  for (unsigned short iVar = 0; iVar < 6; iVar++)
+    Random_Tensor[iVar] = val_random_tensor[iVar];
+}
 
 inline void CEulerVariable::SetSolution_New(void) {
   for (unsigned short iVar = 0; iVar < nVar; iVar++)

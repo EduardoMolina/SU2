@@ -204,6 +204,7 @@ public:
   su2double StrainMag_i, StrainMag_j;   /*!< \brief Strain rate magnitude. */
   
   su2double dissipation;
+  su2double *R_ij;
     
   su2double *l, *m;
 
@@ -295,7 +296,9 @@ public:
    */
   void SetConservative_ZeroOrder(su2double *val_u_i, su2double *val_u_j);
     
-  void SetRoeDissipation(double val_dissipation);
+  void SetRoeDissipation(su2double val_dissipation);
+  
+  void SetRandomTensor(su2double *val_r_ij);
   
   /*!
    * \brief Set the value of the primitive variables.
@@ -795,7 +798,9 @@ public:
                           su2double val_turb_ke, su2double *val_normal,
                           su2double val_laminar_viscosity,
                           su2double val_eddy_viscosity,
-                          bool val_qcr);
+                          bool val_qcr,
+                          bool val_stockastic_backscatter,
+                          su2double *val_random_tensor);
   /*!
    * \brief Compute the projection of the viscous fluxes into a direction for general fluid model.
    * \param[in] val_primvar - Primitive variables.
