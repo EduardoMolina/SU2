@@ -12823,6 +12823,7 @@ void CEulerSolver::BC_Supersonic_Inlet(CGeometry *geometry, CSolver **solver_con
   bool tkeNeeded = (((config->GetKind_Solver() == RANS )|| (config->GetKind_Solver() == DISC_ADJ_RANS)) &&
                     (config->GetKind_Turb_Model() == SST));
   su2double *Normal = new su2double[nDim];
+  bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
   
   /*--- Supersonic inlet flow: there are no outgoing characteristics,
    so all flow variables can be imposed at the inlet.
@@ -12937,6 +12938,13 @@ void CEulerSolver::BC_Supersonic_Inlet(CGeometry *geometry, CSolver **solver_con
         if (config->GetKind_Turb_Model() == SST)
           visc_numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->node[iPoint]->GetSolution(0), solver_container[TURB_SOL]->node[iPoint]->GetSolution(0));
         
+        /*--- Stochastic Backscatter ---*/
+        
+        if (Stochastic_Backscatter){
+          su2double R_ij[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+          visc_numerics->SetRandomTensor(R_ij);
+        }
+        
         /*--- Compute and update residual ---*/
         
         visc_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
@@ -12969,6 +12977,7 @@ void CEulerSolver::BC_Supersonic_Outlet(CGeometry *geometry, CSolver **solver_co
   string Marker_Tag = config->GetMarker_All_TagBound(val_marker);
   
   su2double *Normal = new su2double[nDim];
+  bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
   
   /*--- Supersonic outlet flow: there are no ingoing characteristics,
    so all flow variables can should be interpolated from the domain. ---*/
@@ -13062,6 +13071,13 @@ void CEulerSolver::BC_Supersonic_Outlet(CGeometry *geometry, CSolver **solver_co
         if (config->GetKind_Turb_Model() == SST)
           visc_numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->node[iPoint]->GetSolution(0), solver_container[TURB_SOL]->node[iPoint]->GetSolution(0));
         
+        /*--- Stochastic Backscatter ---*/
+        
+        if (Stochastic_Backscatter){
+          su2double R_ij[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+          visc_numerics->SetRandomTensor(R_ij);
+        }
+
         /*--- Compute and update residual ---*/
         
         visc_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
