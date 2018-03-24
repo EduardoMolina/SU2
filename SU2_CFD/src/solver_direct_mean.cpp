@@ -10697,6 +10697,7 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
                     && (config->GetKind_Turb_Model() == SST));
     
   su2double *Normal = new su2double[nDim];
+  bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
   
   /*--- Loop over all the vertices on this boundary marker ---*/
   
@@ -10918,6 +10919,13 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
         if (config->GetKind_Turb_Model() == SST)
           visc_numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->node[iPoint]->GetSolution(0),
                                               solver_container[TURB_SOL]->node[iPoint]->GetSolution(0));
+        
+        /*--- Stochastic Backscatter ---*/
+        
+        if (Stochastic_Backscatter){
+          su2double R_ij[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+          visc_numerics->SetRandomTensor(R_ij);
+        }
         
         /*--- Compute and update viscous residual ---*/
         
@@ -12313,7 +12321,8 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
   bool tkeNeeded = (((config->GetKind_Solver() == RANS )|| (config->GetKind_Solver() == DISC_ADJ_RANS)) &&
                     (config->GetKind_Turb_Model() == SST));
   su2double *Normal = new su2double[nDim];
-    
+  bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
+  
   /*--- Loop over all the vertices on this boundary marker ---*/
   
   for (iVertex = 0; iVertex < geometry->nVertex[val_marker]; iVertex++) {
@@ -12583,6 +12592,13 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
         
         if (config->GetKind_Turb_Model() == SST)
           visc_numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->node[iPoint]->GetSolution(0), solver_container[TURB_SOL]->node[iPoint]->GetSolution(0));
+
+        /*--- Stochastic Backscatter ---*/
+        
+        if (Stochastic_Backscatter){
+          su2double R_ij[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+          visc_numerics->SetRandomTensor(R_ij);
+        }
         
         /*--- Compute and update residual ---*/
         
@@ -12623,6 +12639,7 @@ void CEulerSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container,
   bool tkeNeeded = (((config->GetKind_Solver() == RANS )|| (config->GetKind_Solver() == DISC_ADJ_RANS)) &&
                     (config->GetKind_Turb_Model() == SST));
   su2double *Normal = new su2double[nDim];
+  bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
   
   /*--- Loop over all the vertices on this boundary marker ---*/
   for (iVertex = 0; iVertex < geometry->nVertex[val_marker]; iVertex++) {
@@ -12764,7 +12781,14 @@ void CEulerSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container,
         /*--- Turbulent kinetic energy ---*/
         if (config->GetKind_Turb_Model() == SST)
           visc_numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->node[iPoint]->GetSolution(0), solver_container[TURB_SOL]->node[iPoint]->GetSolution(0));
+
+        /*--- Stochastic Backscatter ---*/
         
+        if (Stochastic_Backscatter){
+          su2double R_ij[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+          visc_numerics->SetRandomTensor(R_ij);
+        }
+
         /*--- Compute and update residual ---*/
         visc_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
         LinSysRes.SubtractBlock(iPoint, Residual);
@@ -16362,12 +16386,10 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
   
   unsigned long iPoint, jPoint, iEdge;
   
-  bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
-  bool dual_time = ((config->GetUnsteady_Simulation() == DT_STEPPING_1ST) ||
-                    (config->GetUnsteady_Simulation() == DT_STEPPING_2ND));
-  bool ddes = (config->GetKind_HybridRANSLES() != NO_HYBRIDRANSLES);
+  bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT); 
+  bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
   
-  su2double  *R_ij;
+  su2double  *R_ij, Delta;
   
   for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
     
@@ -16395,7 +16417,7 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
                                      solver_container[TURB_SOL]->node[jPoint]->GetSolution(0));
 
     /*--- Stochastic Backscatter ---*/
-    if ((config->GetIntIter() == 0) && dual_time && ddes){
+    if ((config->GetIntIter() == 0) && Stochastic_Backscatter){
       su2double uijuij, nu, nut, dist_wall, k2, r_d, f_d_i, f_d_j;
       su2double tke;
       su2double Grad_Vel[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
@@ -16447,17 +16469,29 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
       f_d_j= 1.0-tanh(pow(8.0*r_d,3.0));
       
       /*--- Check how TKE is calculated ----*/
-      for (iDim = 0; iDim < nDim; iDim++) {
-        for (jDim = 0 ; jDim < nDim; jDim++) {
-          Grad_Vel[iDim][jDim] = 0.5 * (node[iPoint]->GetGradient_Primitive(iDim+1, jDim) + node[jPoint]->GetGradient_Primitive(iDim+1, jDim));}}
-
-      tke = 3.33 * 0.5 * (node[iPoint]->GetEddyViscosity() + node[jPoint]->GetEddyViscosity()) * sqrt(
-            0.88 * pow((Grad_Vel[0][0]),2.0) +
-            0.88 * pow((Grad_Vel[1][1]),2.0) +
-            0.88 * pow((Grad_Vel[2][2]),2.0) +
-            0.5*pow((Grad_Vel[0][1] + Grad_Vel[1][0]),2.0) +
-            0.5*pow((Grad_Vel[1][2] + Grad_Vel[2][1]),2.0) +
-            0.5*pow((Grad_Vel[0][2] + Grad_Vel[2][0]),2.0));
+      
+      /* L. Davidson - Large Eddy Simulations: How to evaluate resolution - IJHFF 30 (2009) */
+       
+      Delta=0.;
+      for (iDim=0;iDim<nDim;++iDim)
+        Delta += pow((geometry->node[jPoint]->GetCoord(iDim)-geometry->node[iPoint]->GetCoord(iDim)),2.);
+      Delta=sqrt(Delta);
+      
+      tke = 0.5 * ((node[jPoint]->GetEddyViscosity()/node[jPoint]->GetDensity()) +
+                 (node[jPoint]->GetEddyViscosity()/node[jPoint]->GetDensity()))/(0.07 * Delta);
+      tke = sqrt(tke);
+      
+      //for (iDim = 0; iDim < nDim; iDim++) {
+      //  for (jDim = 0 ; jDim < nDim; jDim++) {
+      //    Grad_Vel[iDim][jDim] = 0.5 * (node[iPoint]->GetGradient_Primitive(iDim+1, jDim) + node[jPoint]->GetGradient_Primitive(iDim+1, jDim));}}
+      //
+      //tke = 3.33 * 0.5 * (node[iPoint]->GetEddyViscosity() + node[jPoint]->GetEddyViscosity()) * sqrt(
+      //      0.88 * pow((Grad_Vel[0][0]),2.0) +
+      //      0.88 * pow((Grad_Vel[1][1]),2.0) +
+      //      0.88 * pow((Grad_Vel[2][2]),2.0) +
+      //      0.5*pow((Grad_Vel[0][1] + Grad_Vel[1][0]),2.0) +
+      //      0.5*pow((Grad_Vel[1][2] + Grad_Vel[2][1]),2.0) +
+      //      0.5*pow((Grad_Vel[0][2] + Grad_Vel[2][0]),2.0));
       
       R_ij[0] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
       R_ij[1] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
@@ -16468,7 +16502,7 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
       numerics->SetRandomTensor(R_ij);
       node[iPoint]->SetRandom_Tensor(R_ij);
     }
-    else if ((config->GetIntIter() > 0) && dual_time && ddes){
+    else if ((config->GetIntIter() > 0) && Stochastic_Backscatter){
       R_ij = node[iPoint]->GetRandom_Tensor();
       numerics->SetRandomTensor(R_ij);
     }
