@@ -16491,22 +16491,22 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
       for (iDim=0;iDim<nDim;++iDim)
         Delta += pow((geometry->node[jPoint]->GetCoord(iDim)-geometry->node[iPoint]->GetCoord(iDim)),2.);
       Delta=sqrt(Delta);
-      
-      tke = 0.5 * ((node[jPoint]->GetEddyViscosity()/node[jPoint]->GetDensity()) +
+
+      tke = 0.5 * ((node[iPoint]->GetEddyViscosity()/node[iPoint]->GetDensity()) +
                  (node[jPoint]->GetEddyViscosity()/node[jPoint]->GetDensity()))/(0.07 * Delta);
       tke = sqrt(tke);
       
-      //for (iDim = 0; iDim < nDim; iDim++) {
-      //  for (jDim = 0 ; jDim < nDim; jDim++) {
-      //    Grad_Vel[iDim][jDim] = 0.5 * (node[iPoint]->GetGradient_Primitive(iDim+1, jDim) + node[jPoint]->GetGradient_Primitive(iDim+1, jDim));}}
-      //
-      //tke = 3.33 * 0.5 * (node[iPoint]->GetEddyViscosity() + node[jPoint]->GetEddyViscosity()) * sqrt(
-      //      0.88 * pow((Grad_Vel[0][0]),2.0) +
-      //      0.88 * pow((Grad_Vel[1][1]),2.0) +
-      //      0.88 * pow((Grad_Vel[2][2]),2.0) +
-      //      0.5*pow((Grad_Vel[0][1] + Grad_Vel[1][0]),2.0) +
-      //      0.5*pow((Grad_Vel[1][2] + Grad_Vel[2][1]),2.0) +
-      //      0.5*pow((Grad_Vel[0][2] + Grad_Vel[2][0]),2.0));
+//      for (iDim = 0; iDim < nDim; iDim++) {
+//        for (jDim = 0 ; jDim < nDim; jDim++) {
+//          Grad_Vel[iDim][jDim] = 0.5 * (node[iPoint]->GetGradient_Primitive(iDim+1, jDim) + node[jPoint]->GetGradient_Primitive(iDim+1, jDim));}}
+//
+//      tke = 3.33 * 0.5 * ((node[iPoint]->GetEddyViscosity()/node[iPoint]->GetDensity()) + (node[iPoint]->GetEddyViscosity()/node[iPoint]->GetDensity())) * sqrt(
+//            0.88 * pow((Grad_Vel[0][0]),2.0) +
+//            0.88 * pow((Grad_Vel[1][1]),2.0) +
+//            0.88 * pow((Grad_Vel[2][2]),2.0) +
+//            0.5*pow((Grad_Vel[0][1] + Grad_Vel[1][0]),2.0) +
+//            0.5*pow((Grad_Vel[1][2] + Grad_Vel[2][1]),2.0) +
+//            0.5*pow((Grad_Vel[0][2] + Grad_Vel[2][0]),2.0));
 
       for (iDim=0;iDim<6;++iDim)
         R_ij[iDim] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
