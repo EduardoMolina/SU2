@@ -16405,7 +16405,9 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
   bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT); 
   bool Stochastic_Backscatter = ((config->GetStochastic_Backscatter()) && (config->GetKind_HybridRANSLES()!=NO_HYBRIDRANSLES));
   
-  su2double  *R_ij, Delta;
+  su2double  *R_ij_aux, Delta;
+  su2double R_ij[6]={0.0,0.0,0.0,0.0,0.0,0.0};
+  unsigned short iDim, jDim;
   
   for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
     
@@ -16438,9 +16440,6 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
       su2double tke;
       su2double Grad_Vel[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
       
-      unsigned short iDim, jDim;
-      
-      R_ij= new su2double[6]; for (iDim = 0; iDim < 6; iDim++) R_ij[iDim] = 0.0;
       /*--- For iPoint ---*/
       
       dist_wall = geometry->node[iPoint]->GetWall_Distance();
@@ -16508,23 +16507,25 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
       //      0.5*pow((Grad_Vel[0][1] + Grad_Vel[1][0]),2.0) +
       //      0.5*pow((Grad_Vel[1][2] + Grad_Vel[2][1]),2.0) +
       //      0.5*pow((Grad_Vel[0][2] + Grad_Vel[2][0]),2.0));
+
+      for (iDim=0;iDim<6;++iDim)
+        R_ij[iDim] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
       
-      R_ij[0] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
-      R_ij[1] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
-      R_ij[2] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
-      R_ij[3] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
-      R_ij[4] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
-      R_ij[5] = 0.5 * (f_d_i+f_d_j) * tke * (-1.0 + 2.0 * ((double) rand() / (RAND_MAX)));
+      //cout << R_ij[0] << " " << R_ij[1] << " " << R_ij[2] << endl;
       numerics->SetRandomTensor(R_ij);
       node[iPoint]->SetRandom_Tensor(R_ij);
     }
     else if ((config->GetIntIter() > 0) && Stochastic_Backscatter){
-      R_ij = node[iPoint]->GetRandom_Tensor();
+      R_ij_aux = node[iPoint]->GetRandom_Tensor();
+      for (iDim=0;iDim<6;++iDim)
+        R_ij[iDim] = R_ij_aux[iDim];
+      
       numerics->SetRandomTensor(R_ij);
     }
     else{
-      unsigned short iDim;
-      R_ij= new su2double[6]; for (iDim = 0; iDim < 6; iDim++) R_ij[iDim] = 0.0;
+      for (iDim=0;iDim<6;++iDim)
+        R_ij[iDim] = 0.0;
+      
       numerics->SetRandomTensor(R_ij);
     }
     
