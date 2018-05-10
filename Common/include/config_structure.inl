@@ -1506,3 +1506,4 @@ inline bool CConfig::GetQCR(void) {return QCR;}
 
 inline bool CConfig::GetStochastic_Backscatter(void) {return STOCHASTIC_BACKSCATTER;}
 
+inline su2double CConfig::GetminLowDissipation() { return  Min_Low_Dissipation; }

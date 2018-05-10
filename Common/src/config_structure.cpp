@@ -1790,7 +1790,8 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Activate Stochastic Backscatter model for DDES simulations */
   addBoolOption("STOCHASTIC_BACKSCATTER", STOCHASTIC_BACKSCATTER, false);
 
-  
+  /* DESCRIPTION: Minimum Dissipation Constant used in the Low Dissipation */
+  addDoubleOption("MIN_LOW_DISSIPATION", Min_Low_Dissipation, 0.05);  
   /* END_CONFIG_OPTIONS */
 
 }

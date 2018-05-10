@@ -817,6 +817,7 @@ private:
   su2double Const_DES;   /*!< \brief Detached Eddy Simulation Constant. */
   unsigned short Kind_HybridRANSLES; /*!< \brief Kind of Hybrid RANS/LES. */
   unsigned short Kind_RoeLowDiss;    /*!< \brief Kind of Roe scheme with low dissipation for unsteady flows. */
+  su2double Min_Low_Dissipation;   /*!< \brief Minimum dissipation constant in low-dissipation schemes. */
   bool QCR;                   /*!< \brief Spalart-Allmaras with Quadratic Constitutive Relation, 2000 version (SA-QCR2000) . */
   bool STOCHASTIC_BACKSCATTER; /*!< \brief Stochastic Backscatter model for DDES simulations. */
   su2double *default_vel_inf, /*!< \brief Default freestream velocity array for the COption class. */
@@ -6852,6 +6853,12 @@ public:
    * \return Verbosity level for the console output.
    */
    su2double GetConst_DES(void);
+
+ /*!
+   * \brief Get the Low Dissipation Constant
+   * \return Verbosity level for the console output.
+   */
+   su2double GetminLowDissipation(void);
     
   /*!
    * \brief Get QCR (SA-QCR2000).

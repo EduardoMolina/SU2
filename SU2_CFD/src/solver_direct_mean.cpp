@@ -4661,7 +4661,8 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   bool low_mach_corr    = config->Low_Mach_Correction();
 
   su2double  dissipation;
-
+  su2double min_low_dissipation = config->GetminLowDissipation();
+  
   /*--- Loop over all the edges ---*/
 
   for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
@@ -4766,10 +4767,10 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         r_d= (nut+nu)/(uijuij*k2*pow(dist_wall, 2.0));
         f_d_j= 1.0-tanh(pow(8.0*r_d,3.0));
                   
-        dissipation = max(0.05,1.0 - (0.5 * (f_d_i + f_d_j)));
+        dissipation = max(min_low_dissipation,1.0 - (0.5 * (f_d_i + f_d_j)));
         numerics->SetRoeDissipation(dissipation);
-        node[iPoint]->SetRoe_Dissipation(max(0.05,1.0 - f_d_i));
-        node[jPoint]->SetRoe_Dissipation(max(0.05,1.0 - f_d_j));
+        node[iPoint]->SetRoe_Dissipation(max(min_low_dissipation,1.0 - f_d_i));
+        node[jPoint]->SetRoe_Dissipation(max(min_low_dissipation,1.0 - f_d_j));
       }
       else if(config->GetKind_RoeLowDiss() == NTS){
         
@@ -4832,10 +4833,10 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         Aaux = ch2 * max(((Const_DES*Delta_aux)/(Lturb*Gaux)) - 0.5, 0.0);
         phi_hybrid_j = phi_max * tanh(pow(Aaux,ch1));
         
-        dissipation = max(0.5*(phi_hybrid_i+phi_hybrid_j),0.05);
+        dissipation = max(0.5*(phi_hybrid_i+phi_hybrid_j),min_low_dissipation);
         numerics->SetRoeDissipation(dissipation);
-        node[iPoint]->SetRoe_Dissipation(max(0.05,phi_hybrid_i));
-        node[jPoint]->SetRoe_Dissipation(max(0.05,phi_hybrid_j));
+        node[iPoint]->SetRoe_Dissipation(max(min_low_dissipation,phi_hybrid_i));
+        node[jPoint]->SetRoe_Dissipation(max(min_low_dissipation,phi_hybrid_j));
       }
       else if (config->GetKind_RoeLowDiss() == FD_DUCROS){
         su2double uijuij, nu, nut, dist_wall, k2, r_d, f_d_i, f_d_j;
@@ -4945,7 +4946,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         if (0.5*(Ducros_i + Ducros_j) > 0.65)
           Ducros_ij = 1.0;
         else
-          Ducros_ij = 0.05;
+          Ducros_ij = min_low_dissipation;
         
         dissipation = max(Ducros_ij,1.0 - (0.5 * (f_d_i + f_d_j)));
         numerics->SetRoeDissipation(dissipation);
@@ -5074,7 +5075,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         phi1 = 0.5*(Ducros_i+Ducros_j);
         phi2 = 0.5*(phi_hybrid_i+phi_hybrid_j);
         
-        dissipation = min(max(phi1 + phi2 - (phi1*phi2),0.05),1.0);
+        dissipation = min(max(phi1 + phi2 - (phi1*phi2), min_low_dissipation),1.0);
         numerics->SetRoeDissipation(dissipation);
       }
       else if (config->GetKind_RoeLowDiss() == NO_ROELOWDISS){
@@ -6935,7 +6936,9 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
   
   unsigned long iEdge, iPoint, jPoint;
   unsigned short iVar, iDim;
-  su2double **Gradient_i, **Gradient_j, *Coord_i, *Coord_j, *Primitive_i, *Primitive_j,
+  su2double **Gradient_i, **Gradient_j, *Coord_i, *Coord_j,
+  *Primitive, *Primitive_i, *Primitive_j, *LocalMinPrimitive, *LocalMaxPrimitive,
+  *GlobalMinPrimitive, *GlobalMaxPrimitive,
   dave, LimK, eps2, eps1, dm, dp, du, y, limiter;
   
   /*--- Initialize solution max and solution min and the limiter in the entire domain --*/
@@ -7114,23 +7117,184 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
     /*--- Venkatakrishnan Modified limiter ---*/
     /*---  Simple and Parameter-Free Second Slope Limiter for Unstructured Grid Aerodynamic Simulations. AIAA-J 2012 ---*/
 
+    //if (config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN_2NDLIM) {
+    //
+    ///*-- Local Variables ---*/
+    //unsigned short nNeigh, iNeigh;
+    //unsigned long NumNeigh;
+    //su2double Local_Mach_i, Local_Mach_j,  *Local_Primitive, velocity2;
+    //su2double f_Mach_i, f_Mach_j;
+    //
+    ///*-- Get limiter parameters from the configuration file ---*/
+    //
+    //dave = config->GetRefElemLength();
+    //LimK = config->GetLimiterCoeff();
+    //eps1 = LimK*dave;
+    //eps2 = eps1*eps1*eps1;
+    //
+    //
+    //  for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
+    //      
+    //      iPoint     = geometry->edge[iEdge]->GetNode(0);
+    //      jPoint     = geometry->edge[iEdge]->GetNode(1);
+    //      Gradient_i = node[iPoint]->GetGradient_Primitive();
+    //      Gradient_j = node[jPoint]->GetGradient_Primitive();
+    //      Coord_i    = geometry->node[iPoint]->GetCoord();
+    //      Coord_j    = geometry->node[jPoint]->GetCoord();
+    //      
+    //      
+    //      AD::StartPreacc();
+    //      AD::SetPreaccIn(Gradient_i, nPrimVarGrad, nDim);
+    //      AD::SetPreaccIn(Gradient_j, nPrimVarGrad, nDim);
+    //      AD::SetPreaccIn(Coord_i, nDim); AD::SetPreaccIn(Coord_j, nDim);
+    //      
+    //      /*--- Simple and Parameter-Free Second Slope Limiter for Unstructured Grid Aerodynamic Simulations---*/
+    //      /*--- Kitamura and Shima AIAA JOURNAL Vol. 50, No. 6, June 2012 ---*/
+    //      
+    //      Local_Primitive = node[iPoint]->GetPrimitive();
+    //      velocity2 = 0.0;
+    //      for (iDim = 0; iDim < nDim; iDim++) {
+    //          velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
+    //      } 
+    //      Local_Mach_i = sqrt(velocity2)/Local_Primitive[nDim+4];
+    //      
+    //      /*--- Search the neighboors for the maximum Mach ---*/
+    //      
+    //      nNeigh = geometry->node[iPoint]->GetnPoint();
+    //      for (iNeigh=0;iNeigh<nNeigh;++iNeigh){
+    //          NumNeigh = geometry->node[iPoint]->GetPoint(iNeigh);
+    //          Local_Primitive = node[NumNeigh]->GetPrimitive();
+    //          velocity2 = 0.0;
+    //          for (iDim = 0; iDim < nDim; iDim++) {
+    //              velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
+    //          }
+    //          Local_Mach_i = max(Local_Mach_i,sqrt(velocity2)/Local_Primitive[nDim+4]);
+    //      }
+    //      
+    //      f_Mach_i = 0.5 * (1.0 - tanh(5.0 * (22.0/7.0) * (Local_Mach_i-1.0)));
+    //      
+    //      /*-- Repeat for point j on the edge ---*/
+    //      
+    //      Local_Primitive = node[jPoint]->GetPrimitive();
+    //      velocity2 = 0.0;
+    //      for (iDim = 0; iDim < nDim; iDim++) {
+    //          velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
+    //      } 
+    //      Local_Mach_j = sqrt(velocity2)/Local_Primitive[nDim+4];
+    //  
+    //      /*--- Search the neighboors for the maximum Mach ---*/
+    //      
+    //      nNeigh = geometry->node[jPoint]->GetnPoint();
+    //      for (iNeigh=0;iNeigh<nNeigh;++iNeigh){
+    //          NumNeigh = geometry->node[jPoint]->GetPoint(iNeigh);
+    //          Local_Primitive = node[NumNeigh]->GetPrimitive();
+    //          velocity2 = 0.0;
+    //          for (iDim = 0; iDim < nDim; iDim++) {
+    //              velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
+    //          }
+    //          Local_Mach_j = max(Local_Mach_j,sqrt(velocity2)/Local_Primitive[nDim+4]);
+    //      }
+    //      
+    //      f_Mach_j = 0.5 * (1.0 - tanh(5.0 * (22.0/7.0) * (Local_Mach_j-1.0)));
+    //      
+    //      /*--- End  ---*/
+    //      
+    //      for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+    //          
+    //          AD::SetPreaccIn(node[iPoint]->GetSolution_Max(iVar));
+    //          AD::SetPreaccIn(node[iPoint]->GetSolution_Min(iVar));
+    //          AD::SetPreaccIn(node[jPoint]->GetSolution_Max(iVar));
+    //          AD::SetPreaccIn(node[jPoint]->GetSolution_Min(iVar));
+    //          
+    //          /*--- Calculate the interface left gradient, delta- (dm) ---*/
+    //          
+    //          dm = 0.0;
+    //          for (iDim = 0; iDim < nDim; iDim++)
+    //              dm += 0.5*(Coord_j[iDim]-Coord_i[iDim])*Gradient_i[iVar][iDim];
+    //          
+    //          /*--- Calculate the interface right gradient, delta+ (dp) ---*/
+    //          
+    //          if ( dm > 0.0 ) dp = node[iPoint]->GetSolution_Max(iVar);
+    //          else dp = node[iPoint]->GetSolution_Min(iVar);
+    //          
+    //          limiter = ( dp*dp + 2.0*dp*dm + eps2 )/( dp*dp + dp*dm + 2.0*dm*dm + eps2);
+    //          
+    //          /*--- Prevent the limiter to be greater than one ---*/
+    //          
+    //          limiter = min(max(limiter, f_Mach_i), 1.0);
+    //          
+    //          if (limiter < node[iPoint]->GetLimiter_Primitive(iVar)){
+    //              node[iPoint]->SetLimiter_Primitive(iVar, limiter);
+    //              AD::SetPreaccOut(node[iPoint]->GetLimiter_Primitive()[iVar]);
+    //          }
+    //          
+    //          /*-- Repeat for point j on the edge ---*/
+    //          
+    //          dm = 0.0;
+    //          for (iDim = 0; iDim < nDim; iDim++)
+    //              dm += 0.5*(Coord_i[iDim]-Coord_j[iDim])*Gradient_j[iVar][iDim];
+    //          
+    //          if ( dm > 0.0 ) dp = node[jPoint]->GetSolution_Max(iVar);
+    //          else dp = node[jPoint]->GetSolution_Min(iVar);
+    //          
+    //          limiter = ( dp*dp + 2.0*dp*dm + eps2 )/( dp*dp + dp*dm + 2.0*dm*dm + eps2);
+    //          
+    //          /*--- Prevent the limiter to be greater than one ---*/
+    //          
+    //          limiter = min(max(limiter, f_Mach_j),1.0);
+    //          
+    //          if (limiter < node[jPoint]->GetLimiter_Primitive(iVar)){
+    //              node[jPoint]->SetLimiter_Primitive(iVar, limiter);
+    //              AD::SetPreaccOut(node[jPoint]->GetLimiter_Primitive()[iVar]);
+    //          }
+    //      }
+    //      
+    //      AD::EndPreacc();
+    //      
+    //  }
+    //
+    //
+    //}
+
     if (config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN_2NDLIM) {
     
-    /*-- Local Variables ---*/
-    unsigned short nNeigh, iNeigh;
-    unsigned long NumNeigh;
-    su2double Local_Mach_i, Local_Mach_j,  *Local_Primitive, velocity2;
-    su2double f_Mach_i, f_Mach_j;
+      /*--- Allocate memory for the max and min primitive value --*/
+      
+      LocalMinPrimitive = new su2double [nPrimVarGrad]; GlobalMinPrimitive = new su2double [nPrimVarGrad];
+      LocalMaxPrimitive = new su2double [nPrimVarGrad]; GlobalMaxPrimitive = new su2double [nPrimVarGrad];
+      
+      /*--- Compute the max value and min value of the solution ---*/
+      
+      Primitive = node[0]->GetPrimitive();
+      for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+        LocalMinPrimitive[iVar] = Primitive[iVar];
+        LocalMaxPrimitive[iVar] = Primitive[iVar];
+      }
+      
+      for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
+        
+        /*--- Get the primitive variables ---*/
+        
+        Primitive = node[iPoint]->GetPrimitive();
+        
+        for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+          LocalMinPrimitive[iVar] = min (LocalMinPrimitive[iVar], Primitive[iVar]);
+          LocalMaxPrimitive[iVar] = max (LocalMaxPrimitive[iVar], Primitive[iVar]);
+        }
+        
+      }
     
-    /*-- Get limiter parameters from the configuration file ---*/
-
-    dave = config->GetRefElemLength();
-    LimK = config->GetLimiterCoeff();
-    eps1 = LimK*dave;
-    eps2 = eps1*eps1*eps1;
-
-
-    for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
+#ifdef HAVE_MPI
+      SU2_MPI::Allreduce(LocalMinPrimitive, GlobalMinPrimitive, nPrimVarGrad, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      SU2_MPI::Allreduce(LocalMaxPrimitive, GlobalMaxPrimitive, nPrimVarGrad, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+#else
+      for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+        GlobalMinPrimitive[iVar] = LocalMinPrimitive[iVar];
+        GlobalMaxPrimitive[iVar] = LocalMaxPrimitive[iVar];
+      }
+#endif
+    
+      for (iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
         
         iPoint     = geometry->edge[iEdge]->GetNode(0);
         jPoint     = geometry->edge[iEdge]->GetNode(1);
@@ -7139,119 +7303,66 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
         Coord_i    = geometry->node[iPoint]->GetCoord();
         Coord_j    = geometry->node[jPoint]->GetCoord();
         
-        
         AD::StartPreacc();
         AD::SetPreaccIn(Gradient_i, nPrimVarGrad, nDim);
         AD::SetPreaccIn(Gradient_j, nPrimVarGrad, nDim);
         AD::SetPreaccIn(Coord_i, nDim); AD::SetPreaccIn(Coord_j, nDim);
-        
-        /*--- Simple and Parameter-Free Second Slope Limiter for Unstructured Grid Aerodynamic Simulations---*/
-        /*--- Kitamura and Shima AIAA JOURNAL Vol. 50, No. 6, June 2012 ---*/
-        
-        Local_Primitive = node[iPoint]->GetPrimitive();
-        velocity2 = 0.0;
-        for (iDim = 0; iDim < nDim; iDim++) {
-            velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
-        } 
-        Local_Mach_i = sqrt(velocity2)/Local_Primitive[nDim+4];
-        
-        /*--- Search the neighboors for the maximum Mach ---*/
-        
-        nNeigh = geometry->node[iPoint]->GetnPoint();
-        for (iNeigh=0;iNeigh<nNeigh;++iNeigh){
-            NumNeigh = geometry->node[iPoint]->GetPoint(iNeigh);
-            Local_Primitive = node[NumNeigh]->GetPrimitive();
-            velocity2 = 0.0;
-            for (iDim = 0; iDim < nDim; iDim++) {
-                velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
-            }
-            Local_Mach_i = max(Local_Mach_i,sqrt(velocity2)/Local_Primitive[nDim+4]);
-        }
-        
-        f_Mach_i = 0.5 * (1.0 - tanh(5.0 * (22.0/7.0) * (Local_Mach_i-1.0)));
-        
-        /*-- Repeat for point j on the edge ---*/
-        
-        Local_Primitive = node[jPoint]->GetPrimitive();
-        velocity2 = 0.0;
-        for (iDim = 0; iDim < nDim; iDim++) {
-            velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
-        } 
-        Local_Mach_j = sqrt(velocity2)/Local_Primitive[nDim+4];
-
-        /*--- Search the neighboors for the maximum Mach ---*/
-        
-        nNeigh = geometry->node[jPoint]->GetnPoint();
-        for (iNeigh=0;iNeigh<nNeigh;++iNeigh){
-            NumNeigh = geometry->node[jPoint]->GetPoint(iNeigh);
-            Local_Primitive = node[NumNeigh]->GetPrimitive();
-            velocity2 = 0.0;
-            for (iDim = 0; iDim < nDim; iDim++) {
-                velocity2 += Local_Primitive[iDim+1]*Local_Primitive[iDim+1];
-            }
-            Local_Mach_j = max(Local_Mach_j,sqrt(velocity2)/Local_Primitive[nDim+4]);
-        }
-        
-        f_Mach_j = 0.5 * (1.0 - tanh(5.0 * (22.0/7.0) * (Local_Mach_j-1.0)));
-        
-        /*--- End  ---*/
-        
+        AD::SetPreaccIn(eps2);
+      
         for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-            
-            AD::SetPreaccIn(node[iPoint]->GetSolution_Max(iVar));
-            AD::SetPreaccIn(node[iPoint]->GetSolution_Min(iVar));
-            AD::SetPreaccIn(node[jPoint]->GetSolution_Max(iVar));
-            AD::SetPreaccIn(node[jPoint]->GetSolution_Min(iVar));
-            
-            /*--- Calculate the interface left gradient, delta- (dm) ---*/
-            
-            dm = 0.0;
-            for (iDim = 0; iDim < nDim; iDim++)
-                dm += 0.5*(Coord_j[iDim]-Coord_i[iDim])*Gradient_i[iVar][iDim];
-            
-            /*--- Calculate the interface right gradient, delta+ (dp) ---*/
-            
-            if ( dm > 0.0 ) dp = node[iPoint]->GetSolution_Max(iVar);
-            else dp = node[iPoint]->GetSolution_Min(iVar);
-            
-            limiter = ( dp*dp + 2.0*dp*dm + eps2 )/( dp*dp + dp*dm + 2.0*dm*dm + eps2);
-            
-            /*--- Prevent the limiter to be greater than one ---*/
-            
-            limiter = min(max(limiter, f_Mach_i), 1.0);
-            
-            if (limiter < node[iPoint]->GetLimiter_Primitive(iVar)){
-                node[iPoint]->SetLimiter_Primitive(iVar, limiter);
-                AD::SetPreaccOut(node[iPoint]->GetLimiter_Primitive()[iVar]);
-            }
-            
-            /*-- Repeat for point j on the edge ---*/
-            
-            dm = 0.0;
-            for (iDim = 0; iDim < nDim; iDim++)
-                dm += 0.5*(Coord_i[iDim]-Coord_j[iDim])*Gradient_j[iVar][iDim];
-            
-            if ( dm > 0.0 ) dp = node[jPoint]->GetSolution_Max(iVar);
-            else dp = node[jPoint]->GetSolution_Min(iVar);
-            
-            limiter = ( dp*dp + 2.0*dp*dm + eps2 )/( dp*dp + dp*dm + 2.0*dm*dm + eps2);
-            
-            /*--- Prevent the limiter to be greater than one ---*/
-            
-            limiter = min(max(limiter, f_Mach_j),1.0);
-            
-            if (limiter < node[jPoint]->GetLimiter_Primitive(iVar)){
-                node[jPoint]->SetLimiter_Primitive(iVar, limiter);
-                AD::SetPreaccOut(node[jPoint]->GetLimiter_Primitive()[iVar]);
-            }
+          
+          eps1 = LimK * (GlobalMaxPrimitive[iVar] - GlobalMinPrimitive[iVar]);
+          eps2 = eps1*eps1;
+      
+          AD::SetPreaccIn(node[iPoint]->GetSolution_Max(iVar));
+          AD::SetPreaccIn(node[iPoint]->GetSolution_Min(iVar));
+          AD::SetPreaccIn(node[jPoint]->GetSolution_Max(iVar));
+          AD::SetPreaccIn(node[jPoint]->GetSolution_Min(iVar));
+      
+          /*--- Calculate the interface left gradient, delta- (dm) ---*/
+          
+          dm = 0.0;
+          for (iDim = 0; iDim < nDim; iDim++)
+            dm += 0.5*(Coord_j[iDim]-Coord_i[iDim])*Gradient_i[iVar][iDim];
+          
+          /*--- Calculate the interface right gradient, delta+ (dp) ---*/
+          
+          if ( dm > 0.0 ) dp = node[iPoint]->GetSolution_Max(iVar);
+          else dp = node[iPoint]->GetSolution_Min(iVar);
+          
+          limiter = ( dp*dp + 2.0*dp*dm + eps2 )/( dp*dp + dp*dm + 2.0*dm*dm + eps2);
+          
+          if (limiter < node[iPoint]->GetLimiter_Primitive(iVar)) {
+            node[iPoint]->SetLimiter_Primitive(iVar, limiter);
+            AD::SetPreaccOut(node[iPoint]->GetLimiter_Primitive()[iVar]);
+          }
+          
+          /*-- Repeat for point j on the edge ---*/
+          
+          dm = 0.0;
+          for (iDim = 0; iDim < nDim; iDim++)
+            dm += 0.5*(Coord_i[iDim]-Coord_j[iDim])*Gradient_j[iVar][iDim];
+          
+          if ( dm > 0.0 ) dp = node[jPoint]->GetSolution_Max(iVar);
+          else dp = node[jPoint]->GetSolution_Min(iVar);
+          
+          limiter = ( dp*dp + 2.0*dp*dm + eps2 )/( dp*dp + dp*dm + 2.0*dm*dm + eps2);
+          
+          if (limiter < node[jPoint]->GetLimiter_Primitive(iVar)) {
+            node[jPoint]->SetLimiter_Primitive(iVar, limiter);
+            AD::SetPreaccOut(node[jPoint]->GetLimiter_Primitive()[iVar]);
+          }
+          
         }
-        
-        AD::EndPreacc();
-        
-    }
 
+      AD::EndPreacc();
     }
-
+    
+    delete [] LocalMinPrimitive; delete [] GlobalMinPrimitive;
+    delete [] LocalMaxPrimitive; delete [] GlobalMaxPrimitive;  
+  
+  }
+  
   /*--- Limiter MPI ---*/
   
   Set_MPI_Primitive_Limiter(geometry, config);
