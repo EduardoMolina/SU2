@@ -4793,11 +4793,11 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         Eddy_Viscosity_aux = V_i[nDim+6]/V_i[nDim+2];
         StrainMag_aux = node[iPoint]->GetStrainMag();
         Vorticity_aux = node[iPoint]->GetVorticity();
-        Omega_aux = sqrt(Vorticity_aux[0]*Vorticity_aux[0]+ Vorticity_aux[1]*Vorticity_aux[1]+ Vorticity_aux[2]*Vorticity_aux[2]);
+        Omega_aux = sqrt(2.0*Vorticity_aux[0]*Vorticity_aux[0]+ 2.0*Vorticity_aux[1]*Vorticity_aux[1]+ 2.0*Vorticity_aux[2]*Vorticity_aux[2]);
         
         Omega_2 = pow(Omega_aux,2.0);
         StrainMag_2 = pow(StrainMag_aux,2.0);
-        Baux = (ch3 * Omega_aux * max(StrainMag_aux, Omega_aux)) / max(sqrt((StrainMag_2+Omega_2)*0.5),1E-20);
+        Baux = (ch3 * Omega_aux * max(StrainMag_aux, Omega_aux)) / max((StrainMag_2+Omega_2)*0.5,1E-20);
         Gaux = tanh(pow(Baux,4.0));
         TimeScale = config->GetLength_Ref() / config->GetModVel_FreeStream();
         
@@ -4806,7 +4806,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         Kaux = max(sqrt((Omega_2 + StrainMag_2)*0.5), 0.1 * inv_TimeScale);
         
         Lturb = sqrt((Eddy_Viscosity_aux + Laminar_Viscosity_aux)/(pow(cnu,1.5)*Kaux));
-        Aaux = ch2 * max(((Const_DES*Delta_aux)/(Lturb*Gaux)) - 0.5, 0.0);
+        Aaux = ch2 * max((Const_DES*Delta_aux/Lturb)/Gaux - 0.5, 0.0);
         phi_hybrid_i = phi_max * tanh(pow(Aaux,ch1));
         
         /*--- For jPoint ---*/
@@ -4815,22 +4815,20 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         Eddy_Viscosity_aux = V_j[nDim+6]/V_j[nDim+2];
         StrainMag_aux = node[jPoint]->GetStrainMag();
         Vorticity_aux = node[jPoint]->GetVorticity();
-        Omega_aux = sqrt(Vorticity_aux[0]*Vorticity_aux[0]+ Vorticity_aux[1]*Vorticity_aux[1]+ Vorticity_aux[2]*Vorticity_aux[2]);
+        Omega_aux = sqrt(2.0*Vorticity_aux[0]*Vorticity_aux[0]+ 2.0*Vorticity_aux[1]*Vorticity_aux[1]+ 2.0*Vorticity_aux[2]*Vorticity_aux[2]);
         
         Omega_2 = pow(Omega_aux,2.0);
         StrainMag_2 = pow(StrainMag_aux,2.0);
-        Baux = (ch3 * Omega_aux * max(StrainMag_aux, Omega_aux)) / max(sqrt((StrainMag_2+Omega_2)*0.5),1E-20);
+        Baux = (ch3 * Omega_aux * max(StrainMag_aux, Omega_aux)) / max((StrainMag_2+Omega_2)*0.5,1E-20);
         Gaux = tanh(pow(Baux,4.0));
         TimeScale = config->GetLength_Ref() / config->GetModVel_FreeStream();
-        
-        //cout<< config->GetLength_Ref() << " " << config->GetModVel_FreeStream() << endl;
         
         inv_TimeScale = 1.0/TimeScale;
         
         Kaux = max(sqrt((Omega_2 + StrainMag_2)*0.5), 0.1 * inv_TimeScale);
         
         Lturb = sqrt((Eddy_Viscosity_aux + Laminar_Viscosity_aux)/(pow(cnu,1.5)*Kaux));
-        Aaux = ch2 * max(((Const_DES*Delta_aux)/(Lturb*Gaux)) - 0.5, 0.0);
+        Aaux = ch2 * max((Const_DES*Delta_aux/Lturb)/Gaux - 0.5, 0.0);
         phi_hybrid_j = phi_max * tanh(pow(Aaux,ch1));
         
         dissipation = max(0.5*(phi_hybrid_i+phi_hybrid_j),min_low_dissipation);
