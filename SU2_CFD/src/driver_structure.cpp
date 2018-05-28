@@ -1413,6 +1413,13 @@ void CDriver::Numerics_Preprocessing(CNumerics ****numerics_container,
               }
               break;
               
+            case TAU_LD2:
+              for (iMGlevel = 0; iMGlevel <= config->GetnMGLevels(); iMGlevel++) {
+                numerics_container[iMGlevel][FLOW_SOL][CONV_TERM] = new CUpwTAULD2_Flow(nDim, nVar_Flow, config);
+                numerics_container[iMGlevel][FLOW_SOL][CONV_BOUND_TERM] = new CUpwTAULD2_Flow(nDim, nVar_Flow, config);
+              }
+              break;
+              
             case HLLC:
               if (ideal_gas) {
                 for (iMGlevel = 0; iMGlevel <= config->GetnMGLevels(); iMGlevel++) {

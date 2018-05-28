@@ -4189,6 +4189,7 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
       if (Kind_Upwind_Flow == LMROE) cout << "Rieper Low Mach ROE solver for the flow inviscid terms."<< endl;
       if (Kind_Upwind_Flow == SLAU) cout << "Simple Low-Dissipation AUSM solver for the flow inviscid terms."<< endl;
       if (Kind_Upwind_Flow == SLAU2) cout << "Simple Low-Dissipation AUSM 2 solver for the flow inviscid terms."<< endl;
+      if (Kind_Upwind_Flow == TAU_LD2) cout << "TAU's Low-Dissipation and Low-Dispersion Skew-Symmetric solver for the flow inviscid terms."<< endl;
         switch (SpatialOrder_Flow) {
           case FIRST_ORDER: cout << "First order integration." << endl; break;
           case SECOND_ORDER: cout << "Second order integration." << endl; break;
