@@ -2071,9 +2071,6 @@ private:
   Density_j, Energy_j, SoundSpeed_j, Pressure_j, Enthalpy_j, R, RoeDensity, RoeEnthalpy, RoeSoundSpeed,
   ProjVelocity, ProjVelocity_i, ProjVelocity_j;
   unsigned short iDim, iVar, jVar, kVar;
-  su2double uLuR, rhoU_L, rhoU_R, PU_L, PU_R;
-  su2double mL, mR, mF, pF;
-  su2double aF, Vn_Mag, aux_slau, Mach_tilde, Chi, f_rho, BetaL, BetaR, Vn_MagL, Vn_MagR;
   unsigned short slau_low_diss;
   
 public:
