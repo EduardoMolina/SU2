@@ -1441,12 +1441,12 @@ void CUpwTAULD2_Flow::ComputeResidual(su2double *val_residual, su2double **val_J
   val_residual[0] = 0.5 * ( Velocity_i[0]*Density_i + Velocity_j[0]*Density_j)*UnitNormal[0];
   val_residual[1] = (0.5*(Velocity_i[0] + Velocity_j[0]) * 0.5*( Velocity_i[0]*Density_i + Velocity_j[0]*Density_j) + 0.5*(Pressure_i+Pressure_j))*UnitNormal[0]; 
   val_residual[2] = (0.5*(Velocity_i[1] + Velocity_j[1]) * 0.5*( Velocity_i[0]*Density_i + Velocity_j[0]*Density_j))*UnitNormal[0];
-  val_residual[3] = (0.5*( Velocity_i[0]*Density_i + Velocity_j[0]*Density_j) * (0.5*(Velocity_i[0]+Velocity_j[0]) + (SoundSpeed_i*SoundSpeed_j/(Gamma*Gamma_Minus_One))) + 0.5*(Velocity_i[0]*Pressure_i + Velocity_j[0]*Pressure_j))*UnitNormal[0];
+  val_residual[3] = (0.5*( Velocity_i[0]*Density_i + Velocity_j[0]*Density_j) * (0.5*(Velocity_i[0]+Velocity_j[0]) + (SoundSpeed_i*SoundSpeed_j/(Gamma*Gamma_Minus_One))) + 0.5*(Velocity_i[0]*Pressure_j + Velocity_j[0]*Pressure_i))*UnitNormal[0];
   
   val_residual[0] += 0.5 * ( Velocity_i[1]*Density_i + Velocity_j[1]*Density_j)*UnitNormal[1];
   val_residual[1] += (0.5*(Velocity_i[0] + Velocity_j[0]) * 0.5*( Velocity_i[1]*Density_i + Velocity_j[1]*Density_j))*UnitNormal[1];
   val_residual[2] += (0.5*(Velocity_i[1] + Velocity_j[1]) * 0.5*( Velocity_i[1]*Density_i + Velocity_j[1]*Density_j) + 0.5*(Pressure_i+Pressure_j))*UnitNormal[1]; 
-  val_residual[3] += (0.5*( Velocity_i[1]*Density_i + Velocity_j[1]*Density_j) * (0.5*(Velocity_i[1]+Velocity_j[1]) + (SoundSpeed_i*SoundSpeed_j/(Gamma*Gamma_Minus_One))) + 0.5*(Velocity_i[1]*Pressure_i + Velocity_j[1]*Pressure_j))*UnitNormal[1];
+  val_residual[3] += (0.5*( Velocity_i[1]*Density_i + Velocity_j[1]*Density_j) * (0.5*(Velocity_i[1]+Velocity_j[1]) + (SoundSpeed_i*SoundSpeed_j/(Gamma*Gamma_Minus_One))) + 0.5*(Velocity_i[1]*Pressure_j + Velocity_j[1]*Pressure_i))*UnitNormal[1];
 
   for (iVar = 0; iVar < nVar; iVar++)
     val_residual[iVar] *= Area;
