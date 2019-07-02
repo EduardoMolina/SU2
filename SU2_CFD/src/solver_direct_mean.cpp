@@ -17231,7 +17231,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         velWall_tan = 0.;
         DirTanWM = node[iPoint]->GetDirTanWM();
         for (unsigned short iDim = 0; iDim < nDim; iDim++)
-          velWall_tan +=  V_domain[iDim+1] * DirTanWM[iDim];
+          velWall_tan +=  0.5 * (V_domain[iDim+1] + V_reflected[iDim+1]) * DirTanWM[iDim];
         
         TauWall = node[iPoint]->GetTauWall();
         Residual[nDim+1] = (Wall_HeatFlux - TauWall * velWall_tan) * Area;
@@ -18524,6 +18524,10 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
         / config->GetTemperature_Ref();
       }
       
+      /*--- Get information from the wall model ---*/
+      const su2double  *doubleInfo = config->GetWallFunction_DoubleInfo(Marker_Tag);
+      su2double h_wm  = doubleInfo[0];
+      
       /*--- Loop over all of the vertices on this boundary marker ---*/
       for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
         
@@ -18585,14 +18589,19 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
           /* Compute the wall shear stress and heat flux vector using
            the wall model. */
           su2double tauWall, qWall, ViscosityWall, kOverCvWall;
-          WallModel->WallShearStressAndHeatFlux(Temperature, velTan, LaminarViscosity, Pressure,
-                                                Wall_HeatFlux, HeatFlux_Prescribed,
-                                                Wall_Temperature, Temperature_Prescribed,
-                                                FluidModel, tauWall, qWall, ViscosityWall,
-                                                kOverCvWall);
-
-          /* Compute the wall velocity in tangential direction. */
+//          WallModel->WallShearStressAndHeatFlux(Temperature, velTan, LaminarViscosity, Pressure,
+//                                                Wall_HeatFlux, HeatFlux_Prescribed,
+//                                                Wall_Temperature, Temperature_Prescribed,
+//                                                FluidModel, tauWall, qWall, ViscosityWall,
+//                                                kOverCvWall);
+          
+          /*--- Simple Wall Model ---*/
           const su2double *solWall = node[iPoint]->GetSolution();
+          tauWall = solWall[0] * pow(0.4 * velTan / log(h_wm * 6.77e-5), 2.0);
+          qWall = 0.0;
+          //cout << tauWall << " " << h_wm << endl;
+          /* Compute the wall velocity in tangential direction. */
+          
           su2double velWallTan = 0.0;
           for( iDim = 0; iDim < nDim; iDim++)
             velWallTan += solWall[iDim+1]*dirTan[iDim];
@@ -18602,7 +18611,7 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
           node[iPoint]->SetTauWall(tauWall);
           node[iPoint]->SetHeatFlux(qWall);
           node[iPoint]->SetDirTanWM(dirTan);
-          node[iPoint]->SetLaminarViscosity(ViscosityWall);
+          node[iPoint]->SetLaminarViscosity(node[iPoint]->GetLaminarViscosity());
           node[iPoint]->SetEddyViscosity(0.0);
           node[iPoint]->SetDirNormalWM(Unit_Normal);
           
