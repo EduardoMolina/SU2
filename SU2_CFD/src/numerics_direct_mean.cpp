@@ -4975,9 +4975,9 @@ void CAvgGrad_Base::ReplaceTauWall(const su2double *val_primvar,
   
   Proj_Flux_Tensor[0] = 0.0;
   for (unsigned short iDim = 0; iDim < nDim; iDim++)
-    Proj_Flux_Tensor[iDim+1] = - val_tau_wall * val_dir_tan[iDim] * Area;
+    Proj_Flux_Tensor[iDim+1] =  -val_tau_wall * val_dir_tan[iDim] * Area;
   
-  Proj_Flux_Tensor[nVar-1] = ( val_q_Wall - val_tau_wall * velWall_tan) * Area;
+  Proj_Flux_Tensor[nVar-1] =  val_q_Wall * Area;
   
   //cout << velWall_tan << " " << val_q_Wall << " " << val_tau_wall << endl;
 }

@@ -17012,6 +17012,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
   unsigned long iVertex, iPoint;
   
   bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
+  bool wall_model = config->GetWall_Models();
   
   /*--- Allocation of variables necessary for convective fluxes. ---*/
   su2double Area, ProjVelocity_i;
@@ -17117,7 +17118,8 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         ProjVelocity_i += node[iPoint]->GetVelocity(iDim)*UnitNormal[iDim];
       
       
-      if (config->GetWall_Models()){
+      if (wall_model){
+        
         /*--- Scalars are copied and the velocity is mirrored along the wall boundary,
          i.e. the velocity in normal direction is substracted twice. ---*/
         /*--- Force the velocity to be tangential ---*/
@@ -17131,8 +17133,13 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         /*--- Compute the residual using an upwind scheme. ---*/
         conv_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
         
+        for (iVar = 0; iVar < nVar; iVar++) Residual[iVar] = 0.0;
+        
+        for (iDim = 0; iDim < nDim; iDim++) Residual[iDim+1] = V_domain[nDim+1] * UnitNormal[iDim] * Area;
+        
       }
       else{
+        
         
         for (iVar = 0; iVar < nVar; iVar++) Residual[iVar] = 0.0;
         
@@ -17156,11 +17163,6 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
           LinSysRes.SetBlock_Zero(iPoint, iDim+1);
         node[iPoint]->SetVel_ResTruncError_Zero();
         
-//        /*--- Force the velocity to be 0 ---*/
-//        for (iDim = 0; iDim < nDim; iDim++)
-//          V_reflected[iDim+1] = - V_domain[iDim+1];
-      
-      
       }
       
       /*--- Update residual value ---*/
@@ -17168,12 +17170,11 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
       
       /*--- Jacobian contribution for implicit integration. ---*/
       if (implicit) {
-        if (config->GetWall_Models()){
+        if (!wall_model){
+          //Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
+          //}
+          //else{
           
-          Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
-        }
-        else{
-        
           /*--- Enforce the no-slip boundary condition in a strong way by
            modifying the velocity-rows of the Jacobian (1 on the diagonal). ---*/
         
@@ -17212,7 +17213,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         for (iDim = 0; iDim < nDim; iDim++)
           Grad_Reflected[iVar][iDim] = node[iPoint]->GetGradient_Primitive(iVar, iDim);
       
-      if (config->GetWall_Models()){
+      if (wall_model){
         
         /*--- Reflect the gradients for all scalars including the velocity components.
          The gradients of the velocity components are set later with the
@@ -17280,27 +17281,32 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         visc_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
       
         /*--- Weakly enforce the WM heat flux for the energy equation---*/
+        
+        for (iVar = 0; iVar < nVar; iVar++) Residual[iVar] = 0.0;
+        
         velWall_tan = 0.;
         DirTanWM = node[iPoint]->GetDirTanWM();
-        for (unsigned short iDim = 0; iDim < nDim; iDim++)
-          velWall_tan +=  0.5 * (V_domain[iDim+1] + V_reflected[iDim+1]) * DirTanWM[iDim];
-        
         TauWall = node[iPoint]->GetTauWall();
-        Residual[nDim+1] = (Wall_HeatFlux - TauWall * velWall_tan) * Area;
+        for (unsigned short iDim = 0; iDim < nDim; iDim++){
+          Residual[iDim+1] = TauWall * DirTanWM[iDim];
+          velWall_tan +=  0.5 * (V_domain[iDim+1] + V_reflected[iDim+1]) * DirTanWM[iDim];
+        }
+        
+        Residual[nDim+1] = Wall_HeatFlux * Area;
       }
       else{
         
         for (iVar = 0; iVar < nVar; iVar++) Residual[iVar] = 0.0;
         
         /*--- Weakly impose the WM heat flux for the energy equation---*/
-        Res_Visc[nDim+1] = Wall_HeatFlux * Area;
+        Residual[nDim+1] = Wall_HeatFlux * Area;
         
       }
       LinSysRes.SubtractBlock(iPoint, Residual);
       
       /*--- Jacobian contribution for implicit integration. ---*/
-      if (implicit && (config->GetWall_Models()))
-        Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
+      //if (implicit && (config->GetWall_Models()))
+        //Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
     
     }
   }
@@ -18654,16 +18660,17 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
           /* Compute the wall shear stress and heat flux vector using
            the wall model. */
           su2double tauWall, qWall, ViscosityWall, kOverCvWall;
-//          WallModel->WallShearStressAndHeatFlux(Temperature, velTan, LaminarViscosity, Pressure,
-//                                                Wall_HeatFlux, HeatFlux_Prescribed,
-//                                                Wall_Temperature, Temperature_Prescribed,
-//                                                FluidModel, tauWall, qWall, ViscosityWall,
-//                                                kOverCvWall);
+          WallModel->WallShearStressAndHeatFlux(Temperature, velTan, LaminarViscosity, Pressure,
+                                                Wall_HeatFlux, HeatFlux_Prescribed,
+                                                Wall_Temperature, Temperature_Prescribed,
+                                                FluidModel, tauWall, qWall, ViscosityWall,
+                                                kOverCvWall);
+          
+          const su2double *solWall = node[iPoint]->GetSolution();
           
           /*--- Simple Wall Model ---*/
-          const su2double *solWall = node[iPoint]->GetSolution();
-          tauWall = solWall[0] * pow(0.4 * velTan / log(h_wm * 6.77e-5), 2.0);
-          qWall = 0.0;
+//          tauWall = solWall[0] * pow(0.4 * velTan / log(h_wm * 6.77e-5), 2.0);
+//          qWall = 0.0;
           //cout << tauWall << " " << h_wm << endl;
           /* Compute the wall velocity in tangential direction. */
           
