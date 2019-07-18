@@ -394,8 +394,10 @@ void CWallModelLogLaw::WallShearStressAndHeatFlux(const su2double tExchange,
   while (converged == false){
     
     iter += 1;
-    if (iter == max_iter) converged = true;
-    
+    if (iter == max_iter){
+      converged = true;
+      cout << "WARNING: TauWall evaluation has not converged in solver_direct_mean.cpp" << endl;
+    }
     const su2double u_tau0 = u_tau;
     const su2double y_plus = u_tau0*h_wm/nu_wall;
     

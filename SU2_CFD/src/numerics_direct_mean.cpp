@@ -4960,13 +4960,26 @@ void CAvgGrad_Base::ReplaceTauWall(const su2double *val_primvar,
   
   /*--- ---*/
   unsigned short iDim;
-  su2double Area, velWall_tan;
+  su2double Area, velWall_tan, Sign = 0;
+  su2double *UnitNormal = new su2double[nDim];
   
   Area = 0.0;
   for (iDim = 0; iDim < nDim; iDim++)
     Area += val_normal[iDim]*val_normal[iDim];
   Area = sqrt(Area);
   
+  for (iDim = 0; iDim < nDim; iDim++)
+    UnitNormal[iDim] = -val_normal[iDim] / Area;
+  
+  su2double Sign2 = UnitNormal[0] * val_dir_tan[1] - UnitNormal[1] * val_dir_tan[0];
+  if (nDim == 3){
+    su2double Sign0 = UnitNormal[1] * val_dir_tan[2] - UnitNormal[2] * val_dir_tan[1];
+    su2double Sign1 = UnitNormal[0] * val_dir_tan[2] - UnitNormal[2] * val_dir_tan[0];
+    Sign = Sign0 - Sign1 + Sign2;
+  }
+  else Sign = Sign2;
+  
+  //cout << Sign << endl;
   /*--- primitive variables -> [Temp vel_x vel_y vel_z Pressure] ---*/
   
   velWall_tan = 0.;
@@ -4975,11 +4988,13 @@ void CAvgGrad_Base::ReplaceTauWall(const su2double *val_primvar,
   
   Proj_Flux_Tensor[0] = 0.0;
   for (unsigned short iDim = 0; iDim < nDim; iDim++)
-    Proj_Flux_Tensor[iDim+1] =  -val_tau_wall * val_dir_tan[iDim] * Area;
+    Proj_Flux_Tensor[iDim+1] =  val_tau_wall * val_dir_tan[iDim] * Area;
   
   Proj_Flux_Tensor[nVar-1] =  val_q_Wall * Area;
   
-  //cout << velWall_tan << " " << val_q_Wall << " " << val_tau_wall << endl;
+  /*--- Free locally allocated memory ---*/
+  delete [] UnitNormal;
+  
 }
 
 
@@ -5470,6 +5485,7 @@ void CAvgGrad_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jac
       SU2_MPI::Error("There is something wrong with the wall models/functions specification.", CURRENT_FUNCTION);
   }
   else GetViscousProjFlux(Mean_PrimVar, Normal);
+  
   
   /*--- Update viscous residual ---*/
   

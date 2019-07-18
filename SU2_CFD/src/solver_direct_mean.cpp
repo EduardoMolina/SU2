@@ -16066,6 +16066,13 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
 
     numerics->ComputeResidual(Res_Visc, Jacobian_i, Jacobian_j, config);
     
+//    if ((geometry->node[iPoint]->GetCoord(1) == -1.0) || (geometry->node[jPoint]->GetCoord(1) == -1.0)){
+//
+//      su2double *edge_normal = geometry->edge[iEdge]->GetNormal();
+//
+//      cout << " Pi: " << iPoint << " Pj: " << jPoint << " Xi: " << geometry->node[iPoint]->GetCoord(0) << " Yi: " << geometry->node[iPoint]->GetCoord(1) << " Xj: " << geometry->node[jPoint]->GetCoord(0) << " Yj: " << geometry->node[jPoint]->GetCoord(1) <<  " PBi: "<< geometry->node[iPoint]->GetPhysicalBoundary() << " PBj: " << geometry->node[jPoint]->GetPhysicalBoundary() << " Normal0 " << edge_normal[0] << " Normal1 " << edge_normal[1] << " rv0 " << Res_Visc[0] << " rv1 " << Res_Visc[1] << " rv2 " << Res_Visc[2] << " rv3 " << Res_Visc[3] << endl;
+//    }
+    
     LinSysRes.SubtractBlock(iPoint, Res_Visc);
     LinSysRes.AddBlock(jPoint, Res_Visc);
     
@@ -17013,6 +17020,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
   
   bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool wall_model = config->GetWall_Models();
+  //bool wall_model = false;
   
   /*--- Allocation of variables necessary for convective fluxes. ---*/
   su2double Area, ProjVelocity_i;
@@ -17133,9 +17141,9 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         /*--- Compute the residual using an upwind scheme. ---*/
         conv_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
         
-        for (iVar = 0; iVar < nVar; iVar++) Residual[iVar] = 0.0;
+        //for (iVar = 0; iVar < nVar; iVar++) Residual[iVar] = 0.0;
         
-        for (iDim = 0; iDim < nDim; iDim++) Residual[iDim+1] = V_domain[nDim+1] * UnitNormal[iDim] * Area;
+        //for (iDim = 0; iDim < nDim; iDim++) Residual[iDim+1] = V_domain[nDim+1] * UnitNormal[iDim] * Area;
         
       }
       else{
@@ -17170,10 +17178,10 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
       
       /*--- Jacobian contribution for implicit integration. ---*/
       if (implicit) {
-        if (!wall_model){
-          //Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
-          //}
-          //else{
+        if (wall_model){
+          Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
+          }
+        else{
           
           /*--- Enforce the no-slip boundary condition in a strong way by
            modifying the velocity-rows of the Jacobian (1 on the diagonal). ---*/
@@ -17288,7 +17296,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         DirTanWM = node[iPoint]->GetDirTanWM();
         TauWall = node[iPoint]->GetTauWall();
         for (unsigned short iDim = 0; iDim < nDim; iDim++){
-          Residual[iDim+1] = TauWall * DirTanWM[iDim];
+          Residual[iDim+1] = -TauWall * DirTanWM[iDim] * Area;
           velWall_tan +=  0.5 * (V_domain[iDim+1] + V_reflected[iDim+1]) * DirTanWM[iDim];
         }
         
@@ -17305,8 +17313,8 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
       LinSysRes.SubtractBlock(iPoint, Residual);
       
       /*--- Jacobian contribution for implicit integration. ---*/
-      //if (implicit && (config->GetWall_Models()))
-        //Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
+      if (implicit && (config->GetWall_Models()))
+        Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
     
     }
   }
@@ -18496,8 +18504,8 @@ void CNSSolver::Setmut_LES(CGeometry *geometry, CSolver **solver_container, CCon
     /* Length Scale can be precompute from DES LengthScale.
      I would like to test the Shear Layer Adapted one*/
     //lenScale    = node[iPoint]->GetDES_LengthScale();
-    //lenScale = pow(geometry->node[iPoint]->GetVolume(),1./3.);
-    lenScale = geometry->node[iPoint]->GetMaxLength();
+    lenScale = pow(geometry->node[iPoint]->GetVolume(),1./3.);
+    //lenScale = geometry->node[iPoint]->GetMaxLength();
 
     /* Compute the eddy viscosity. */
     if (nDim == 2){
@@ -18517,27 +18525,27 @@ void CNSSolver::Setmut_LES(CGeometry *geometry, CSolver **solver_container, CCon
   
   /* Loop over the markers and select the ones for which a wall model
    treatment is carried out. */
-  for(unsigned short iMarker=0; iMarker<nMarker; ++iMarker) {
-    switch (config->GetMarker_All_KindBC(iMarker)) {
-      case ISOTHERMAL:
-      case HEAT_FLUX:{
-        const string Marker_Tag = config->GetMarker_All_TagBound(iMarker);
-        
-        /* Set the eddy viscosity to zero if it is using a wall model */
-        if ((config->GetWallFunction_Treatment(Marker_Tag) == EQUILIBRIUM_WALL_MODEL) ||
-            (config->GetWallFunction_Treatment(Marker_Tag) == LOGARITHMIC_WALL_MODEL)){
-          
-          for (unsigned long iVertex = 0; iVertex < nVertex[iMarker]; iVertex++) {
-            iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
-            node[iPoint]->SetEddyViscosity(0.0);
-          }
-        }
-      }
-        break;
-      default:
-        break;
-    }
-  }
+//  for(unsigned short iMarker=0; iMarker<nMarker; ++iMarker) {
+//    switch (config->GetMarker_All_KindBC(iMarker)) {
+//      case ISOTHERMAL:
+//      case HEAT_FLUX:{
+//        const string Marker_Tag = config->GetMarker_All_TagBound(iMarker);
+//
+//        /* Set the eddy viscosity to zero if it is using a wall model */
+//        if ((config->GetWallFunction_Treatment(Marker_Tag) == EQUILIBRIUM_WALL_MODEL) ||
+//            (config->GetWallFunction_Treatment(Marker_Tag) == LOGARITHMIC_WALL_MODEL)){
+//
+//          for (unsigned long iVertex = 0; iVertex < nVertex[iMarker]; iVertex++) {
+//            iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+//            node[iPoint]->SetEddyViscosity(0.0);
+//          }
+//        }
+//      }
+//        break;
+//      default:
+//        break;
+//    }
+//  }
 }
 
 void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_container, CConfig *config, unsigned short iRKStep) {
@@ -18596,8 +18604,7 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
       }
       
       /*--- Get information from the wall model ---*/
-      const su2double  *doubleInfo = config->GetWallFunction_DoubleInfo(Marker_Tag);
-      su2double h_wm  = doubleInfo[0];
+      //const su2double  *doubleInfo = config->GetWallFunction_DoubleInfo(Marker_Tag);
       
       /*--- Loop over all of the vertices on this boundary marker ---*/
       for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
@@ -18640,7 +18647,7 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
         
         /* TODO: Subtract the prescribed wall velocity, i.e. grid velocity
          from the velocity in the exchange point. */
-        for(iDim=0; iDim<nDim; ++iDim) vel_LES[iDim] -= node[iPoint]->GetSolution(iDim+1)/node[iPoint]->GetSolution(0);
+        //for(iDim=0; iDim<nDim; ++iDim) vel_LES[iDim] -= node[iPoint]->GetSolution(iDim+1)/node[iPoint]->GetSolution(0);
         
         /* Determine the tangential velocity by subtracting the normal
          velocity component. */
@@ -18683,10 +18690,15 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
           node[iPoint]->SetTauWall(tauWall);
           node[iPoint]->SetHeatFlux(qWall);
           node[iPoint]->SetDirTanWM(dirTan);
-          node[iPoint]->SetLaminarViscosity(node[iPoint]->GetLaminarViscosity());
-          node[iPoint]->SetEddyViscosity(0.0);
           node[iPoint]->SetDirNormalWM(Unit_Normal);
+
+          node[iPoint]->SetLaminarViscosity(ViscosityWall);
+          node[iPoint]->SetPressure(Pressure);
           
+          const su2double TWall = Temperature_Prescribed ? Wall_Temperature : Temperature;
+          FluidModel->SetTDState_PT(Pressure, TWall);
+          node[iPoint]->SetDensity(FluidModel->GetDensity());
+
         }
 //        else{
 //          /*---
