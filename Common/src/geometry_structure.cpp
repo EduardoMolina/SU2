@@ -11466,6 +11466,7 @@ void CPhysicalGeometry::STGPreprocessing(CConfig *config) {
   unsigned short iMarker;
   unsigned long iPoint, iVertex;
   unsigned long NModes = config->GetNumberModes();
+  bool ReadRandNumbers = true;
   
 #ifdef HAVE_MPI
   int rank, nProcessor;
@@ -11543,12 +11544,7 @@ void CPhysicalGeometry::STGPreprocessing(CConfig *config) {
   
   SU2_MPI::Allgather(&sizeLocal, 1, MPI_INT, recvCounts.data(), 1,
                     MPI_INT, MPI_COMM_WORLD);
-  
-//  if (rank == MASTER_NODE){
-//    //cout << "After AllGather: " << recvCounts.size() << endl;
-//    for(std::vector<int>::size_type i = 0; i != recvCounts.size(); i++) cout << recvCounts[i] << endl;
-//  }
-  
+    
   /*--- Create the data for the vector displs from the known values of
      recvCounts. Also determine the total size of the data.   ---*/
   displs[0] = 0;
@@ -11567,10 +11563,6 @@ void CPhysicalGeometry::STGPreprocessing(CConfig *config) {
   sort( STG_GlobalListCoordX.begin(), STG_GlobalListCoordX.end() );
   STG_GlobalListCoordX.erase(unique(STG_GlobalListCoordX.begin(), STG_GlobalListCoordX.end(), CompareWithGap), STG_GlobalListCoordX.end());
 
-//  if (rank == MASTER_NODE){
-//    //cout << "After AllGatherv: " << STG_GlobalListCoordX.size() << endl;
-//    for(std::vector<int>::size_type i = 0; i != STG_GlobalListCoordX.size(); i++) cout << STG_GlobalListCoordX[i] << endl;
-//  }
 #else
   cout <<"Number of SNG points: " << nSTGPts << endl;
   STG_GlobalListCoordX = STG_ListCoordX;
@@ -11579,44 +11571,70 @@ void CPhysicalGeometry::STGPreprocessing(CConfig *config) {
   
   // Generate random numbers
   if (rank == MASTER_NODE){
-    std::default_random_engine rand_gen;
     
-    // a somewhat random seed
-    rand_gen.seed((int)time(0));
-    uniform_real_distribution<su2double> u02pi(0.,2.0*PI_NUMBER);
-    uniform_real_distribution<su2double> u01(0.,1.0);
-    
-    su2double theta, phi, x, y, z;
-    su2double thetan, phin, xn, yn, zn;
-    for (unsigned long i = 0; i < NModes; ++i){
-      PhaseMode.push_back(u02pi(rand_gen));
+    if (ReadRandNumbers){
+      cout << "# Reading pre-generated random angles." << endl;
+      ifstream rand_file;
+      rand_file.open("RandNumFile.dat", ios::in);
       
-      // Generate random number over a sphere with radius 1.
-      theta = 2. * PI_NUMBER * u01(rand_gen);
-      phi   = acos(1. - 2. * u01(rand_gen));
-      x = sin(phi) * cos(theta);
-      y = sin(phi) * sin(theta);
-      z = cos(phi);
+      if (rand_file.fail()){
+        SU2_MPI::Error(string("Random numbers file (RandNumFile.dat) not found."), CURRENT_FUNCTION);
+      }
+      
+      double col1, col2, col3, col4, col5, col6, col7;
+      while (rand_file >> col1 >> col2 >> col3 >> col4 >> col5 >> col6 >> col7)
+      {
+        RandUnitVec.push_back(col1);
+        RandUnitVec.push_back(col2);
+        RandUnitVec.push_back(col3);
+        RandUnitNormal.push_back(col4);
+        RandUnitNormal.push_back(col5);
+        RandUnitNormal.push_back(col6);
+        PhaseMode.push_back(col7);
+      }
+      rand_file.close();
+      
+    }
+    else{
+      cout << "# Generating a new set of random angles." << endl;
+      std::default_random_engine rand_gen;
+      
+      // a somewhat random seed
+      rand_gen.seed((int)time(0));
+      uniform_real_distribution<su2double> u02pi(0.,2.0*PI_NUMBER);
+      uniform_real_distribution<su2double> u01(0.,1.0);
+      
+      su2double theta, phi, x, y, z;
+      su2double thetan, phin, xn, yn, zn;
+      for (unsigned long i = 0; i < NModes; ++i){
+        PhaseMode.push_back(u02pi(rand_gen));
+        
+        // Generate random number over a sphere with radius 1.
+        theta = 2. * PI_NUMBER * u01(rand_gen);
+        phi   = acos(1. - 2. * u01(rand_gen));
+        x = sin(phi) * cos(theta);
+        y = sin(phi) * sin(theta);
+        z = cos(phi);
 
-      thetan = 2. * PI_NUMBER * u01(rand_gen);
-      phin   = acos(1. - 2. * u01(rand_gen));
-      xn = sin(phin) * cos(thetan);
-      yn = sin(phin) * sin(thetan);
-      zn = cos(phin);
-      
-      // Create a normal vector
-      su2double norm = x * xn + y * yn + z * zn;
-      xn = x - xn*norm;
-      yn = y - yn*norm;
-      zn = z - zn*norm;
-      
-      RandUnitVec.push_back(x);
-      RandUnitVec.push_back(y);
-      RandUnitVec.push_back(z);
-      RandUnitNormal.push_back(xn);
-      RandUnitNormal.push_back(yn);
-      RandUnitNormal.push_back(zn);
-      
+        thetan = 2. * PI_NUMBER * u01(rand_gen);
+        phin   = acos(1. - 2. * u01(rand_gen));
+        xn = sin(phin) * cos(thetan);
+        yn = sin(phin) * sin(thetan);
+        zn = cos(phin);
+        
+        // Create a normal vector
+        su2double norm = x * xn + y * yn + z * zn;
+        xn = x - xn*norm;
+        yn = y - yn*norm;
+        zn = z - zn*norm;
+        
+        RandUnitVec.push_back(x);
+        RandUnitVec.push_back(y);
+        RandUnitVec.push_back(z);
+        RandUnitNormal.push_back(xn);
+        RandUnitNormal.push_back(yn);
+        RandUnitNormal.push_back(zn);
+      }
     }
   }
   
