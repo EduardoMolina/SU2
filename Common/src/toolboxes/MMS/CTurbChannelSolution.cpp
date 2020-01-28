@@ -1191,7 +1191,6 @@ void CTurbChannelSolution::STG_Preprocessing(vector<su2double> &PhaseMode,
       // Determine K, Omega and Density
       const su2double turb_ke  = kRANS[i];
       const su2double omega    = omegaRANS[i];
-      const su2double density  = rhoRANS[i];
       const su2double velocity = uRANS[i];
       
       //Determine the turbulent length scale for the SST model.

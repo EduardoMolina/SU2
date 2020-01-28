@@ -1765,14 +1765,12 @@ CUpwSLAU2_KEP_Flow::CUpwSLAU2_KEP_Flow(unsigned short val_nDim, unsigned short v
   Gamma = config->GetGamma();
   Gamma_Minus_One = Gamma - 1.0;
   
-  Param_Kappa_4 = config->GetKappa_4th_Flow();
   slau_low_dissipation = val_low_dissipation;
   
   Diff_U = new su2double [nVar];
   Velocity_i = new su2double [nDim];
   Velocity_j = new su2double [nDim];
   RoeVelocity = new su2double [nDim];
-  MeanVelocity = new su2double [nDim];
   Lambda = new su2double [nVar];
   Epsilon = new su2double [nVar];
   P_Tensor = new su2double* [nVar];
@@ -1781,9 +1779,6 @@ CUpwSLAU2_KEP_Flow::CUpwSLAU2_KEP_Flow(unsigned short val_nDim, unsigned short v
     P_Tensor[iVar] = new su2double [nVar];
     invP_Tensor[iVar] = new su2double [nVar];
   }
-  Diff_Lapl            = new su2double [nVar];
-  val_residual_central = new su2double [nVar];
-  val_residual_upwind  = new su2double [nVar];
 }
 
 CUpwSLAU2_KEP_Flow::~CUpwSLAU2_KEP_Flow(void) {
@@ -1792,7 +1787,6 @@ CUpwSLAU2_KEP_Flow::~CUpwSLAU2_KEP_Flow(void) {
   delete [] Velocity_i;
   delete [] Velocity_j;
   delete [] RoeVelocity;
-  delete [] MeanVelocity;
   delete [] Lambda;
   delete [] Epsilon;
   for (iVar = 0; iVar < nVar; iVar++) {
@@ -1802,9 +1796,6 @@ CUpwSLAU2_KEP_Flow::~CUpwSLAU2_KEP_Flow(void) {
   delete [] P_Tensor;
   delete [] invP_Tensor;
   
-  delete [] Diff_Lapl;
-  delete [] val_residual_central;
-  delete [] val_residual_upwind;
 }
 
 void CUpwSLAU2_KEP_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jacobian_i, su2double **val_Jacobian_j, CConfig *config) {
@@ -1849,18 +1840,7 @@ void CUpwSLAU2_KEP_Flow::ComputeResidual(su2double *val_residual, su2double **va
     ProjVelocity_i += Velocity_i[iDim]*UnitNormal[iDim];
     ProjVelocity_j += Velocity_j[iDim]*UnitNormal[iDim];
   }
-  
-  Local_Lambda_i = (fabs(ProjVelocity_i)+SoundSpeed_i*Area);
-  Local_Lambda_j = (fabs(ProjVelocity_j)+SoundSpeed_j*Area);
-  MeanLambda = 0.5*(Local_Lambda_i+Local_Lambda_j);
-  
-  /*--- Compute mean values of the variables ---*/
-  MeanDensity = 0.5*(Density_i+Density_j);
-  MeanPressure = 0.5*(Pressure_i+Pressure_j);
-  MeanEnthalpy = 0.5*(Enthalpy_i+Enthalpy_j);
-  for (iDim = 0; iDim < nDim; iDim++)
-    MeanVelocity[iDim] =  0.5*(Velocity_i[iDim]+Velocity_j[iDim]);
-    
+      
   /*--- Sound speed and Projected Mach Number ---*/
   aF = 0.5 * (SoundSpeed_i + SoundSpeed_j);
   mL  = ProjVelocity_i/aF;
@@ -1904,18 +1884,18 @@ void CUpwSLAU2_KEP_Flow::ComputeResidual(su2double *val_residual, su2double **va
   /*--- Pressure Flux ---*/
   pF = 0.5 * (Pressure_i + Pressure_j) + 0.5 * (BetaL - BetaR) * (Pressure_i - Pressure_j) + sqrt(aux_slau/2.0) * (BetaL + BetaR - 1.0) * aF * 0.5 * (Density_i + Density_j);
   
-  val_residual_upwind[0] = 0.5*(mF+fabs(mF)) + 0.5*(mF-fabs(mF));
+  val_residual[0] = 0.5*(mF+fabs(mF)) + 0.5*(mF-fabs(mF));
   
   for (iDim = 0; iDim < nDim; iDim++) {
-    val_residual_upwind[iDim+1] = 0.5*(mF+fabs(mF)) * Velocity_i[iDim];
-    val_residual_upwind[iDim+1]+= 0.5*(mF-fabs(mF)) * Velocity_j[iDim] ;
-    val_residual_upwind[iDim+1]+= pF*UnitNormal[iDim];
+    val_residual[iDim+1] = 0.5*(mF+fabs(mF)) * Velocity_i[iDim];
+    val_residual[iDim+1]+= 0.5*(mF-fabs(mF)) * Velocity_j[iDim] ;
+    val_residual[iDim+1]+= pF*UnitNormal[iDim];
   }
 
-  val_residual_upwind[nVar-1] = 0.5*(mF+fabs(mF))*(Enthalpy_i) + 0.5*(mF-fabs(mF))*(Enthalpy_j);
+  val_residual[nVar-1] = 0.5*(mF+fabs(mF))*(Enthalpy_i) + 0.5*(mF-fabs(mF))*(Enthalpy_j);
   
   for (iVar = 0; iVar < nVar; iVar++)
-    val_residual[iVar] = val_residual_upwind[iVar] * Area;
+    val_residual[iVar] *= Area;
   
   /*--- Roe's Jacobian for AUSM (this must be fixed) ---*/
   if (implicit) {

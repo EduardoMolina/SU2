@@ -2228,9 +2228,6 @@ private:
   su2double mL, mR, mF, pF;
   su2double aF, Vn_Mag, aux_slau, Mach_tilde, Chi, f_rho, BetaL, BetaR, Vn_MagL, Vn_MagR;
   
-  su2double MeanDensity, MeanEnthalpy, MeanPressure, *MeanVelocity, *val_residual_central, *val_residual_upwind,
-  *Diff_Lapl, Local_Lambda_i, Local_Lambda_j, MeanLambda, sc2, sc4, Epsilon_4, Param_Kappa_4;
-  
   
 public:
   

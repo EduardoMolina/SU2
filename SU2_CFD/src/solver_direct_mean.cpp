@@ -8611,18 +8611,18 @@ void CEulerSolver::SetSynthetic_Turbulence(CGeometry *geometry, CSolver **solver
   
   // Load the previously calculated macro-scale velocity, e.g., maximum velocity at interface.
   const su2double U0 = global_lengthEnergetic[2];
-  
-  // Load the STG box.
-  const su2double *STGBox = config->GetVolumeSTGBox_Values();
-  const su2double Lbf = STGBox[3] - STGBox[0];
-  const su2double p1[2] = {STGBox[0], 0.0};
-  const su2double p2[2] = { (Lbf / 2.) + STGBox[0], 1.0};
-  const su2double p3[2] = {STGBox[3], 0.0};
-  
+    
   // Spatial distribution of the source intensity.
   vector<su2double> ListCoordX = geometry->GetSTG_GlobalListCoordX();
   vector<su2double> AlphaX;
   
+  // Load the STG box.
+//  const su2double *STGBox = config->GetVolumeSTGBox_Values();
+//  const su2double Lbf = STGBox[3] - STGBox[0];
+//  const su2double p1[2] = {STGBox[0], 0.0};
+//  const su2double p2[2] = { (Lbf / 2.) + STGBox[0], 1.0};
+//  const su2double p3[2] = {STGBox[3], 0.0};
+
 //  if (config->GetKind_SyntheticTurbulence() == VOLUME_STG){
 //
 //    /*--- Piecewise linear function controlling the spatial distribution ---*/
@@ -11350,7 +11350,7 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
             SU2_MPI::Error("Point not found in the STG vector.", CURRENT_FUNCTION);
           
           // Get index of element from iterator
-          int index = std::distance(LocalPoints.begin(), it);
+          unsigned long index = std::distance(LocalPoints.begin(), it);
           
           /*--- Add the already computed synthetic velocities to the array ---*/
           for (iDim = 0; iDim < nDim; iDim++)
