@@ -103,8 +103,10 @@ protected:
   su2double Pr_turb; /*!< \brief Turbulent Prandtl number. */
   su2double karman;  /*!< \brief von Karman constant. */
   su2double RGas;    /*!< \brief Dimensional Gas Constant. */
+  su2double Gamma;
   su2double Cp;
   su2double Cv;
+  su2double Pref, Tref, Uref; /*!< \brief Pressure, Temperature and Velocity references. */
   
 private:
   /*!

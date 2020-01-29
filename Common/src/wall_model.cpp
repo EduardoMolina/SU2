@@ -52,11 +52,13 @@ CWallModel::CWallModel(CConfig *config) {
 
   /*--- Get the dimensional Gas Constant.---*/
   RGas = config->GetGas_Constant();
-    
-  Cv = RGas/(config->GetGamma()-1.0);
-  Cp = config->GetGamma()*Cv;
+  Gamma = config->GetGamma();
+  Cv = RGas/(Gamma-1.0);
+  Cp = Gamma*Cv;
 
-
+  Pref = config->GetPressure_Ref();
+  Tref = config->GetTemperature_Ref();
+  Uref = config->GetVelocity_Ref();
 }
 
 void CWallModel::WallShearStressAndHeatFlux(const su2double rhoExchange,
@@ -120,14 +122,17 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
                                                 const su2double pExchange,
                                                 const su2double Wall_HeatFlux,
                                                 const bool      HeatFlux_Prescribed,
-                                                const su2double TWall,
+                                                const su2double Wall_Temperature,
                                                 const bool      Temperature_Prescribed,
-                                                CFluidModel    *FluidModel,
-                                                su2double &tauWall,
-                                                su2double &qWall,
-                                                su2double &ViscosityWall,
-                                                su2double &kOverCvWall) {
+                                                CFluidModel     *FluidModel,
+                                                su2double       &tauWall,
+                                                su2double       &qWall,
+                                                su2double       &ViscosityWall,
+                                                su2double       &kOverCvWall) {
 
+  /* Set the wall temperature, depending whether or not the temperature
+     was prescribed and initialize the fluid model. */
+  const su2double TWall = Temperature_Prescribed ? Wall_Temperature : tExchange;
   
   /* Set tau wall to initial guess
    */
@@ -136,20 +141,11 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
   ViscosityWall = 0.0;
   kOverCvWall = 0.0;
   
-  /* Set some constants, assuming air at standard conditions
-  Todo: Read values below from the config file or from solver.
+  /* Set some constants.
    */
-  //su2double C_1 = 2.03929e-04;
-  su2double C_1 = 1.716e-5;
-  su2double S = 110.4;
-  su2double T_ref = 273.15;
-  su2double R = 287.058;
-  su2double A = 17;
-  su2double gamma = 1.4;
-  su2double c_p = (gamma*R)/(gamma-1);
-  su2double c_v = R/(gamma-1);
-  su2double h_wall = c_p * TWall;
-  su2double h_bc   = c_p * tExchange;
+  su2double A = 17.0;
+  su2double h_wall = Cp * TWall;
+  su2double h_bc   = Cp * tExchange;
   unsigned short nfa = numPoints + 1;
 
   /* Set up vectors
@@ -183,12 +179,12 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
     note: rho and mu_lam will be a function of temperature when solving an energy equation
      */
     for(unsigned short i=0; i < nfa; ++i){
-      mu_lam = C_1 * pow(T[i]/T_ref, 1.5) * ((T_ref + S)/ (T[i] + S));
-      mu_fa[i] = mu_lam;
+        FluidModel->SetTDState_PT(pExchange/Pref, T[i]/Tref);
+        mu_fa[i] = FluidModel->GetLaminarViscosity() * Pref / Uref;
     }
     
     for(unsigned short i=1; i < nfa; ++i){
-      rho = pExchange / (R*T[i]);
+      rho = pExchange / (RGas*T[i]);
       nu = mu_fa[i] / rho;
       utau = sqrt(tauWall / rho);
       y_plus = y_fa[i] * utau / nu;
@@ -242,15 +238,15 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
     /* Update total viscosity
      */
     for(unsigned short i=0; i < nfa; ++i){
-      mu_lam = C_1 * pow(T[i]/T_ref, 1.5) * ((T_ref + S)/ (T[i] + S));
-      mu_fa[i] = mu_lam;
-      tmp[i] = mu_lam/Pr_lam;
+      FluidModel->SetTDState_PT(pExchange/Pref, T[i]/Tref);
+      mu_fa[i] = FluidModel->GetLaminarViscosity() * Pref / Uref;
+      tmp[i] = mu_fa[i]/Pr_lam;
     }
     /* Update tauWall
      */
     tauWall = mu_fa[0] * (u[0] - 0.0)/(y_cv[0]-y_fa[0]);
     for(unsigned short i=1; i < nfa; ++i){
-      rho = pExchange / (R*T[i]);
+      rho = pExchange / (RGas*T[i]);
       nu = mu_fa[i] / rho;
       utau = sqrt(tauWall / rho);
       y_plus = y_fa[i] * utau / nu;
@@ -302,7 +298,7 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
     
     if (HeatFlux_Prescribed == true){
       /* dT/dy = 0 -> Twall = T[1] */
-      h_wall = c_p * T[1];
+      h_wall = Cp * T[1];
     }
     
     rhs[0] -= aux_rhs * h_wall;
@@ -321,27 +317,28 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
     /* Get Temperature from enthalpy
       - Temperature will be at face
      */
-    T[0] = h_wall/c_p;
-    T[numPoints] = h_bc/c_p;
+    T[0] = h_wall/Cp;
+    T[numPoints] = h_bc/Cp;
     for (unsigned short i=0; i < numPoints-1; i++){
-      T[i+1] = 0.5 * (rhs[i] + rhs[i+1])/c_p;
+      T[i+1] = 0.5 * (rhs[i] + rhs[i+1])/Cp;
     }
     
     /* Final update tauWall
      */
-    mu_lam = C_1 * pow(T[0]/T_ref, 1.5) * ((T_ref + S)/ (T[0] + S));
+    FluidModel->SetTDState_PT(pExchange/Pref, T[0]/Tref);
+    mu_lam = FluidModel->GetLaminarViscosity() * Pref / Uref;
     
     /* These quantities will be returned.
      */
     tauWall = mu_lam * (u[0] - 0.0)/(y_cv[0]-y_fa[0]);
-    qWall = mu_lam * (c_p / Pr_lam) * -(T[1] - T[0]) / (y_fa[1]-y_fa[0]);
+    qWall = mu_lam * (Cp / Pr_lam) * -(T[1] - T[0]) / (y_fa[1]-y_fa[0]);
     ViscosityWall = mu_lam;
     //kOverCvWall = c_p / c_v * (mu[0]/Pr_lam + muTurb[0]/Pr_turb);
-    kOverCvWall = c_p / c_v * (mu_lam/Pr_lam);
+    kOverCvWall = Cp / Cv * (mu_lam/Pr_lam);
     
     /* Final check of the Y+
      */
-    rho = pExchange / (R * T[0]);
+    rho = pExchange / (RGas * T[0]);
     if (y_cv[0] * sqrt(tauWall/rho) / (mu_lam/rho) > 1.0)
       SU2_MPI::Error("Y+ greater than one: Increase the number of points or growth ratio.", CURRENT_FUNCTION);
     
@@ -384,14 +381,13 @@ void CWallModelLogLaw::WallShearStressAndHeatFlux(const su2double tExchange,
      was prescribed and initialize the fluid model. */
   const su2double TWall = Temperature_Prescribed ? Wall_Temperature : tExchange;
 
-  FluidModel->SetTDState_PT(pExchange, TWall);
+  FluidModel->SetTDState_PT(pExchange/Pref, TWall/Tref);
 
-  // TODO: Fix the constant laminar viscosity assumption in LogLaw wall model.
   /* Get the required data from the fluid model.
-     Caution! Here we are assuming that laminar viscosity is constant! */
-  const su2double mu_wall  = muExchange;
+   */
+  const su2double mu_wall  = FluidModel->GetLaminarViscosity() * Pref / Uref;;
   const su2double rho_wall = pExchange / (TWall * RGas);
-  const su2double nu_wall  = muExchange / rho_wall;
+  const su2double nu_wall  = mu_wall / rho_wall;
 
   /* Initial guess of the friction velocity. */ 
   su2double u_tau = max(0.01*velExchange, 1.e-5);
