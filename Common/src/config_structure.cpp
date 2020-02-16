@@ -3836,7 +3836,7 @@ void CConfig::SetPostprocessing(unsigned short val_software, unsigned short val_
    definition for the wall founctions: Check the Wall functions with Finite Volume code.---*/
   
   bool FV_SteadyRANS = ((Unsteady_Simulation == STEADY) && (Kind_Solver == RANS));
-  bool FV_LES = ((Unsteady_Simulation == DT_STEPPING_2ND) && (Kind_Solver == NAVIER_STOKES) && (Kind_Turb_Model == NONE));
+  bool FV_LES = ((Unsteady_Simulation != STEADY) && (Kind_Solver == NAVIER_STOKES) && (Kind_Turb_Model == NONE));
   Wall_Functions = false;
   Wall_Models = false;
   if (nMarker_WallFunctions > 0) {
