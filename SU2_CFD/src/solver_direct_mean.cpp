@@ -3709,19 +3709,27 @@ void CEulerSolver::SetTime_Step(CGeometry *geometry, CSolver **solver_container,
     SU2_MPI::Bcast(&rbuf_time, 1, MPI_DOUBLE, MASTER_NODE, MPI_COMM_WORLD);
     Global_Delta_Time = rbuf_time;
 #endif
+
+    /*--- Sets the regular CFL equal to the unsteady CFL ---*/
+    if (config->GetUnst_CFL() != 0.0)
+      config->SetCFL(iMesh,config->GetUnst_CFL());
+
     for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
-            
-            /*--- Sets the regular CFL equal to the unsteady CFL ---*/
-            config->SetCFL(iMesh,config->GetUnst_CFL());
-            
-            /*--- If the unsteady CFL is set to zero, it uses the defined unsteady time step, otherwise
-             it computes the time step based on the unsteady CFL ---*/
-            if (config->GetCFL(iMesh) == 0.0) {
-                node[iPoint]->SetDelta_Time(config->GetDelta_UnstTime());
-            } else {
-                node[iPoint]->SetDelta_Time(Global_Delta_Time);
-            }
-        }
+                  
+      /*--- If the unsteady CFL is set to zero, it uses the defined unsteady time step, otherwise
+       it computes the time step based on the unsteady CFL ---*/
+      if (config->GetUnst_CFL() == 0.0) {
+        node[iPoint]->SetDelta_Time(config->GetDelta_UnstTimeND());
+      } else {
+        node[iPoint]->SetDelta_Time(Global_Delta_Time);
+      }
+      
+    }
+    
+    /*--- Set the global time step. ---*/
+    if (config->GetUnst_CFL() != 0.0) {
+      config->SetDelta_UnstTimeND(Global_Delta_Time);
+    }
   }
   
   /*--- Recompute the unsteady time step for the dual time strategy
@@ -16493,7 +16501,7 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
   if (SGSModelUsed)
     Setmut_LES(geometry, solver_container, config);
   
-  if (config->GetUsing_MassFlowCorrection())
+  if (config->GetUsing_MassFlowCorrection() && (iRKStep == 0))
     CorrectMassFlow(geometry, solver_container, config);
   
   /*--- Initialize the Jacobian matrices ---*/
@@ -16703,7 +16711,6 @@ void CNSSolver::SetTime_Step(CGeometry *geometry, CSolver **solver_container, CC
   
   /*--- Each element uses their own speed, steady state simulation ---*/
   
-  
   for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
     
     Vol = geometry->node[iPoint]->GetVolume();
@@ -16751,8 +16758,27 @@ void CNSSolver::SetTime_Step(CGeometry *geometry, CSolver **solver_container, CC
     SU2_MPI::Bcast(&rbuf_time, 1, MPI_DOUBLE, MASTER_NODE, MPI_COMM_WORLD);
     Global_Delta_Time = rbuf_time;
 #endif
-    for (iPoint = 0; iPoint < nPointDomain; iPoint++)
-      node[iPoint]->SetDelta_Time(Global_Delta_Time);
+
+    /*--- Sets the regular CFL equal to the unsteady CFL ---*/
+    if (config->GetUnst_CFL() != 0.0)
+      config->SetCFL(iMesh,config->GetUnst_CFL());
+
+    for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
+                  
+      /*--- If the unsteady CFL is set to zero, it uses the defined unsteady time step, otherwise
+       it computes the time step based on the unsteady CFL ---*/
+      if (config->GetUnst_CFL() == 0.0) {
+        node[iPoint]->SetDelta_Time(config->GetDelta_UnstTimeND());
+      } else {
+        node[iPoint]->SetDelta_Time(Global_Delta_Time);
+      }
+      
+    }
+    
+    /*--- Set the global time step. ---*/
+    if (config->GetUnst_CFL() != 0.0) {
+      config->SetDelta_UnstTimeND(Global_Delta_Time);
+    }
   }
   
   /*--- Recompute the unsteady time step for the dual time strategy
@@ -16821,9 +16847,7 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
     numerics->SetqWall(node[iPoint]->GetHeatFlux(), node[jPoint]->GetHeatFlux());
     
     /*--- Compute and update residual ---*/
-    //cout << " Pi: " << iPoint << " Pj: " << jPoint << " Xi: " << geometry->node[iPoint]->GetCoord(0) << " Yi: " << geometry->node[iPoint]->GetCoord(1) << " Zi: " << geometry->node[iPoint]->GetCoord(2) << " Xj: " << geometry->node[jPoint]->GetCoord(0) << " Yj: " << geometry->node[jPoint]->GetCoord(1) << " Zj: " << geometry->node[jPoint]->GetCoord(2) <<  " PBi: "<< geometry->node[iPoint]->GetPhysicalBoundary() << " PBj: " << geometry->node[jPoint]->GetPhysicalBoundary() << " " ;
-    //cout << " Pi: " << iPoint << " Pj: " << jPoint << " Xi: " << geometry->node[iPoint]->GetCoord(0) << " Yi: " << geometry->node[iPoint]->GetCoord(1) << " Xj: " << geometry->node[jPoint]->GetCoord(0) << " Yj: " << geometry->node[jPoint]->GetCoord(1) <<  " PBi: "<< geometry->node[iPoint]->GetPhysicalBoundary() << " PBj: " << geometry->node[jPoint]->GetPhysicalBoundary() << " " ;
-
+    
     numerics->ComputeResidual(Res_Visc, Jacobian_i, Jacobian_j, config);
     
     LinSysRes.SubtractBlock(iPoint, Res_Visc);
@@ -17873,7 +17897,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         ProjVelocity_i += node[iPoint]->GetVelocity(iDim)*UnitNormal[iDim];
       
       
-      if (config->GetWall_Models()){
+      if (config->GetWall_Models() && node[iPoint]->GetTauWall_Flag()){
         /*--- Scalars are copied and the velocity is mirrored along the wall boundary,
          i.e. the velocity in normal direction is substracted twice. ---*/
         
@@ -17919,7 +17943,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
       /*--- Jacobian contribution for implicit integration. ---*/
       
       if (implicit) {
-        if (config->GetWall_Models()){
+        if (config->GetWall_Models() && node[iPoint]->GetTauWall_Flag()){
           Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
         }
         else{
@@ -17940,7 +17964,7 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
       /*-------------------------------------------------------*/
       /*-------------------------------------------------------*/
 
-      if (config->GetWall_Models()){
+      if (config->GetWall_Models() && node[iPoint]->GetTauWall_Flag()){
         
         /*--- Weakly enforce the WM heat flux for the energy equation---*/
         su2double velWall_tan = 0.;
