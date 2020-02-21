@@ -331,6 +331,18 @@ inline void CConfig::SetPhysicalTime(su2double val_t) { PhysicalTime = val_t; }
 
 inline su2double CConfig::GetPhysicalTime(void) { return PhysicalTime; }
 
+inline void CConfig::SetLocalSynchonizationTime(su2double val_t) { LocalSynchonizationTime = val_t; }
+
+inline su2double CConfig::GetLocalSynchonizationTime(void) { return LocalSynchonizationTime; }
+
+inline void CConfig::SetSynchronizationTimeReached(bool val_t) { SynchronizationTimeReached = val_t; }
+
+inline bool CConfig::GetSynchronizationTimeReached(void) { return SynchronizationTimeReached; }
+
+inline void CConfig::SetNSynchonizationTime(unsigned long val_iter) { NSynchonizationTime = val_iter; }
+
+inline unsigned long CConfig::GetNSynchonizationTime(void) { return NSynchonizationTime; }
+
 inline bool CConfig::GetReorientElements(void) { return ReorientElements; }
 
 inline unsigned long CConfig::GetIter_Avg_Objective(void) { return Iter_Avg_Objective ; }
@@ -2001,6 +2013,8 @@ inline su2double CConfig::GetConst_DES(void) {return Const_DES; }
 inline unsigned long CConfig::GetNumberModes(void) {return NumberModes; }
 
 inline su2double CConfig::GetMinLowDissipation(void) {return MinLowDissipation; }
+
+inline su2double CConfig::GetSynchronizationTime(void) {return SynchronizationTime; }
 
 inline bool CConfig::GetQCR(void) {return QCR;}
 

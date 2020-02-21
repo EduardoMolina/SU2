@@ -726,6 +726,16 @@ void CFluidIteration::Update(COutput *output,
     
   }
   
+  /*--- Time stepping strategy ---*/
+  
+  if ((config_container[val_iZone]->GetUnsteady_Simulation() == TIME_STEPPING) &&
+      (config_container[val_iZone]->GetUnst_CFL() != 0.0) &&
+      (config_container[val_iZone]->GetCompute_Average()) &&
+      (config_container[val_iZone]->GetSynchronizationTimeReached())) {
+    for (iMesh = 0; iMesh <= config_container[val_iZone]->GetnMGLevels(); iMesh++)
+      integration_container[val_iZone][val_iInst][FLOW_SOL]->SetUnsteadyAverage(geometry_container[val_iZone][val_iInst][iMesh], solver_container[val_iZone][val_iInst][iMesh][FLOW_SOL], config_container[val_iZone], iMesh);
+  }
+  
 }
 
 bool CFluidIteration::Monitor(COutput *output,

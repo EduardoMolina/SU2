@@ -1011,6 +1011,10 @@ private:
   unsigned short Kind_SyntheticTurbulence; /*!< \brief Kind of Synthetic Turbulence. */
   unsigned short Kind_ConvectiveFlux; /*!< \brief Kind of Convective Flux. */
   su2double MinLowDissipation;   /*!< \brief Min low dissipation constant for DDES simulations. */
+  su2double SynchronizationTime; /*!< \brief Synchronization time for time-stepping RK. (From Config File) */
+  su2double LocalSynchonizationTime; /*!< \brief Local Synchronization time for time-stepping RK. */
+  bool SynchronizationTimeReached;   /*!< \brief Bool Synchronization time reached for time-stepping RK. */
+  unsigned long NSynchonizationTime; /*!< \brief Number of Synchronization time reached for time-stepping RK. */
   unsigned short Kind_RoeLowDiss;    /*!< \brief Kind of Roe scheme with low dissipation for unsteady flows. */
   bool QCR;                   /*!< \brief Spalart-Allmaras with Quadratic Constitutive Relation, 2000 version (SA-QCR2000) . */
   su2double *default_vel_inf, /*!< \brief Default freestream velocity array for the COption class. */
@@ -8995,6 +8999,24 @@ public:
    * \return Value of lower bound of the low dissipation parameter.
    */
   su2double GetMinLowDissipation(void);
+
+  /*!
+   * \brief Get the synchronization time.
+   * \return Value of synchronization time.
+   */
+  su2double GetSynchronizationTime(void);
+  
+  void SetLocalSynchonizationTime(su2double val_t);
+  
+  su2double GetLocalSynchonizationTime(void);
+  
+  void SetSynchronizationTimeReached(bool val_t);
+
+  bool GetSynchronizationTimeReached(void);
+
+  void SetNSynchonizationTime(unsigned long val_iter);
+
+  unsigned long GetNSynchonizationTime(void);
   
   /*!
    * \brief Get the DES Constant.

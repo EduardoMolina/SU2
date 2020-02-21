@@ -247,7 +247,15 @@ public:
    * \param[in] config - Definition of the particular problem.
    */
   void SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CConfig *config, unsigned short iMesh);
-  
+
+  /*!
+   * \brief Save the unsteady statistics for URANS, Hybrid RANS/LES and WMLES.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solution - Flow solution.
+   * \param[in] config - Definition of the particular problem.
+   */
+  void SetUnsteadyAverage(CGeometry *geometry, CSolver *solver, CConfig *config, unsigned short iMesh);
+    
   /*! 
    * \brief Save the structural solution at different time steps.
    * \param[in] geometry - Geometrical definition of the problem.

@@ -16763,6 +16763,30 @@ void CNSSolver::SetTime_Step(CGeometry *geometry, CSolver **solver_container, CC
     if (config->GetUnst_CFL() != 0.0)
       config->SetCFL(iMesh,config->GetUnst_CFL());
 
+    /*--- If the synchronization time is different than zero, we need to compute the time step relative to the
+     synchronization time. When we reach it, adapt the time step and set synchronizationTimeReached to true. ---*/
+    const su2double deltaTSynchr = config->GetSynchronizationTime();
+    
+    if ((deltaTSynchr != 0.0) && (config->GetUnst_CFL() != 0.0)){
+      su2double LocalSyncTime = config->GetLocalSynchonizationTime();
+      const su2double tNew    = LocalSyncTime + Global_Delta_Time;
+      const unsigned long nSyncIter = config->GetNSynchonizationTime();
+      
+      config->SetSynchronizationTimeReached(false);
+    
+      if(tNew >= ((su2double) 0.99)*deltaTSynchr)
+      {
+        Global_Delta_Time = deltaTSynchr - LocalSyncTime;
+        config->SetSynchronizationTimeReached(true);
+        config->SetNSynchonizationTime(nSyncIter + 1);
+      }
+    
+      config->SetLocalSynchonizationTime(LocalSyncTime + Global_Delta_Time);
+      
+      if (config->GetSynchronizationTimeReached()) config->SetLocalSynchonizationTime(0.0);
+      
+    }
+    
     for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
                   
       /*--- If the unsteady CFL is set to zero, it uses the defined unsteady time step, otherwise
@@ -19327,12 +19351,10 @@ void CNSSolver::Setmut_LES(CGeometry *geometry, CSolver **solver_container, CCon
 void CNSSolver::CorrectMassFlow(CGeometry *geometry, CSolver **solver_container, CConfig *config) {
   
   unsigned long iPoint, Iter_dMach_dBodyForce = 1;
-  unsigned short iVar;
   
   su2double Local_MassFlow  = 0.0;
   su2double Local_VolSum    = 0.0;
   su2double Global_MassFlow = 0.0;
-  su2double Global_VolSum   = 0.0;
   
   /* The Mass flow correction needs to be  */
   if (config->GetExtIter() % Iter_dMach_dBodyForce != 0) return;
@@ -19401,7 +19423,11 @@ void CNSSolver::CorrectMassFlow(CGeometry *geometry, CSolver **solver_container,
   config->SetMassFlowCorrection(BodyForce_new);
   
   if (rank == MASTER_NODE)
-    cout << "*** --- Initial Bulk Velocity: " << Target_Mach << " Actual Bulk Velocity: " << Global_MassFlow << " Actual Body Force: " << BodyForce_old << " New Body Force: " << BodyForce_new << " dMach_dBodyForce: " << dMach_dBodyForce << " 	--- ***" << endl;
+    if (((config->GetExtIter() % config->GetWrt_Sol_Freq() == 0) &&
+         (config->GetUnsteady_Simulation() == DT_STEPPING_2ND)) ||
+        (config->GetSynchronizationTimeReached() &&
+         (config->GetUnsteady_Simulation() == TIME_STEPPING)))
+        cout << "*** --- Initial Bulk Velocity: " << Target_Mach << " Actual Bulk Velocity: " << Global_MassFlow << " Actual Body Force: " << BodyForce_old << " New Body Force: " << BodyForce_new << " dMach_dBodyForce: " << dMach_dBodyForce << " 	--- ***" << endl;
   
 }
 

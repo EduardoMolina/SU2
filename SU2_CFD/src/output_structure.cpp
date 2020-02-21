@@ -4687,7 +4687,8 @@ void COutput::SetConvHistory_Body(ofstream *ConvHist_file,
     
     unsigned long ExtIter_OffSet = config[val_iZone]->GetExtIter_OffSet();
     if (config[val_iZone]->GetUnsteady_Simulation() == DT_STEPPING_1ST ||
-        config[val_iZone]->GetUnsteady_Simulation() == DT_STEPPING_2ND)
+        config[val_iZone]->GetUnsteady_Simulation() == DT_STEPPING_2ND ||
+        config[val_iZone]->GetUnsteady_Simulation() == TIME_STEPPING)
       ExtIter_OffSet = 0;
 
     /*--- WARNING: These buffers have hard-coded lengths. Note that you
@@ -5199,6 +5200,9 @@ void COutput::SetConvHistory_Body(ofstream *ConvHist_file,
     bool In_DualTime_2 = (Unsteady && DualTime_Iteration && (iExtIter % config[val_iZone]->GetWrt_Con_Freq() == 0));
     bool In_DualTime_3 = (Unsteady && !DualTime_Iteration && (iExtIter % config[val_iZone]->GetWrt_Con_Freq() == 0));
     
+    bool TimeStepping  = ((config[val_iZone]->GetUnsteady_Simulation() == TIME_STEPPING) &&
+                           config[val_iZone]->GetSynchronizationTimeReached());
+    
     /*--- Header frequency: analogy for dynamic structural analysis ---*/
     /*--- DualTime_Iteration is a bool we receive, which is true if it comes from FEM_StructuralIteration and false from SU2_CFD ---*/
     /*--- We maintain the name, as it is an input of the function ---*/
@@ -5223,7 +5227,8 @@ void COutput::SetConvHistory_Body(ofstream *ConvHist_file,
     else write_heads_FEM = (((iExtIter % (config[val_iZone]->GetWrt_Con_Freq()*40)) == 0));
 
     if (  (!fem && ((In_NoDualTime || In_DualTime_0 || In_DualTime_1) && (In_NoDualTime || In_DualTime_2 || In_DualTime_3))) ||
-        (fem  && ( (In_NoDynamic || In_Dynamic_0 || In_Dynamic_1) && (In_NoDynamic || In_Dynamic_2 || In_Dynamic_3)))
+        (fem  && ( (In_NoDynamic || In_Dynamic_0 || In_Dynamic_1) && (In_NoDynamic || In_Dynamic_2 || In_Dynamic_3))) ||
+        (!fem && TimeStepping)
         ) {
       
       
@@ -12642,7 +12647,7 @@ void COutput::LoadLocalData_Flow(CConfig *config, CGeometry *geometry, CSolver *
   su2double Gas_Constant, Mach2Vel, Mach_Motion, RefDensity, RefPressure = 0.0, factor = 0.0;
   su2double *Aux_Frict_x = NULL, *Aux_Frict_y = NULL, *Aux_Frict_z = NULL, *Aux_Heat = NULL, *Aux_yPlus = NULL, *Aux_Buffet = NULL;
   su2double *Grid_Vel = NULL;
-  su2double Avg_Iter = (config->GetExtIter() - config->GetUnst_RestartIter()) + 2;
+  su2double Avg_Iter = 0.0;
   su2double Q, Grad_Vel[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
 
   bool transition           = (config->GetKind_Trans_Model() == BC);
@@ -12673,6 +12678,20 @@ void COutput::LoadLocalData_Flow(CConfig *config, CGeometry *geometry, CSolver *
       break;
   }
 
+  if ((config->GetUnsteady_Simulation() == DT_STEPPING_1ST) ||
+      (config->GetUnsteady_Simulation() == DT_STEPPING_2ND)){
+    Avg_Iter = (config->GetExtIter() - config->GetUnst_RestartIter()) + 2;
+    
+  }
+  else if ((config->GetUnsteady_Simulation() == TIME_STEPPING) &&
+           ((config->GetSynchronizationTime() != 0.0) && (config->GetUnst_CFL() != 0.0))
+          ){
+    Avg_Iter = (su2double)config->GetNSynchonizationTime() + 1.0;
+  }
+  else{
+    Avg_Iter = 1.0;
+  }
+  
   /*--- Set the non-dimensionalization for coefficients. ---*/
   
   if (grid_movement) {

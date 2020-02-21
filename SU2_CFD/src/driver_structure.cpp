@@ -4020,7 +4020,8 @@ void CDriver::Output(unsigned long ExtIter) {
       /*--- Unsteady problems ---*/
       
       (((config_container[ZONE_0]->GetUnsteady_Simulation() == DT_STEPPING_1ST) ||
-        (config_container[ZONE_0]->GetUnsteady_Simulation() == TIME_STEPPING)) &&
+        ((config_container[ZONE_0]->GetUnsteady_Simulation() == TIME_STEPPING) &&
+         (config_container[ZONE_0]->GetSynchronizationTime() == 0.0))) &&
        ((ExtIter == 0) || (ExtIter % config_container[ZONE_0]->GetWrt_Sol_Freq_DualTime() == 0))) ||
       
       ((config_container[ZONE_0]->GetUnsteady_Simulation() == DT_STEPPING_2ND) && (!fsi) &&
@@ -4035,7 +4036,13 @@ void CDriver::Output(unsigned long ExtIter) {
       
       /*--- No inlet profile file found. Print template. ---*/
       
-      (config_container[ZONE_0]->GetWrt_InletFile())
+      (config_container[ZONE_0]->GetWrt_InletFile()) ||
+
+      ((config_container[ZONE_0]->GetUnsteady_Simulation() == TIME_STEPPING) &&
+       (config_container[ZONE_0]->GetSynchronizationTime() != 0.0) &&
+       (config_container[ZONE_0]->GetNSynchonizationTime() % config_container[ZONE_0]->GetWrt_Sol_Freq() == 0) &&
+       (config_container[ZONE_0]->GetSynchronizationTimeReached())
+      )
       
       ) {
     

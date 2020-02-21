@@ -2319,6 +2319,9 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
 
   /* DESCRIPTION: DES Constant */
   addDoubleOption("DES_CONST", Const_DES, 0.65);
+  
+  /* DESCRIPTION: Synchronization Time for explicit time-stepping*/
+  addDoubleOption("SYNCHRONIZATION_TIME", SynchronizationTime, 0.0);
 
   /* DESCRIPTION: Lower bound of the low dissipation parameter*/
   addDoubleOption("MIN_LOW_DISSIPATION", MinLowDissipation, 0.05);
@@ -4383,6 +4386,13 @@ void CConfig::SetPostprocessing(unsigned short val_software, unsigned short val_
     SU2_MPI::Error(string("For SU2 v7.0.0 and later, preprocessing of periodic grids by SU2_MSH\n") +
                    string("is no longer necessary. Please use the original mesh file (prior to SU2_MSH)\n") +
                    string("with the same MARKER_PERIODIC definition in the configuration file.") , CURRENT_FUNCTION);
+  }
+  
+  /*--- If unsteady time-stepping, initialize the Syncronization Time---*/
+  if (Unsteady_Simulation == TIME_STEPPING){
+    LocalSynchonizationTime    = 0.0;
+    SynchronizationTimeReached = false;
+    NSynchonizationTime = 0;
   }
   
 }
