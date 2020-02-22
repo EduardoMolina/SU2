@@ -19355,6 +19355,7 @@ void CNSSolver::CorrectMassFlow(CGeometry *geometry, CSolver **solver_container,
   su2double Local_MassFlow  = 0.0;
   su2double Local_VolSum    = 0.0;
   su2double Global_MassFlow = 0.0;
+  su2double Global_VolSum   = 0.0;
   
   /* The Mass flow correction needs to be  */
   if (config->GetExtIter() % Iter_dMach_dBodyForce != 0) return;

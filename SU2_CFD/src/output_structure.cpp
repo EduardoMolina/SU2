@@ -5217,6 +5217,7 @@ void COutput::SetConvHistory_Body(ofstream *ConvHist_file,
     
     bool write_heads;
     if (Unsteady) write_heads = (iIntIter == 0);
+    else if (TimeStepping) write_heads = true;
     else write_heads = (((iExtIter % (config[val_iZone]->GetWrt_Con_Freq()*40)) == 0));
     
     bool write_turbo = (((iExtIter % (config[val_iZone]->GetWrt_Con_Freq()*40)) == 0) || (iExtIter == (config[val_iZone]->GetnExtIter() -1)));
@@ -5590,7 +5591,7 @@ void COutput::SetConvHistory_Body(ofstream *ConvHist_file,
             }
             else {
               if (flow) {
-                if ((config[val_iZone]->GetUnsteady_Simulation() == TIME_STEPPING) && (config[val_iZone]->GetUnst_CFL()== 0.0))
+                if ((config[val_iZone]->GetUnsteady_Simulation() == TIME_STEPPING) && ((config[val_iZone]->GetUnst_CFL()== 0.0) || (config[val_iZone]->GetSynchronizationTime() != 0.0)))
                 {
                   cout << endl << "Min DT: " << solver_container[val_iZone][val_iInst][FinestMesh][FLOW_SOL]->GetMin_Delta_Time()<< ".Max DT: " << solver_container[val_iZone][val_iInst][FinestMesh][FLOW_SOL]->GetMax_Delta_Time() << ".Time step: " << config[val_iZone]->GetDelta_UnstTimeND() << ".";
                 } else if ((config[val_iZone]->GetUnsteady_Simulation() == TIME_STEPPING) && (config[val_iZone]->GetUnst_CFL()!= 0.0)) {
