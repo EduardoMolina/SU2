@@ -3391,7 +3391,7 @@ void CEulerSolver::SetInitialCondition(CGeometry **geometry, CSolver ***solver_c
           solver_container[MESH_0][FLOW_SOL]->node[iPoint]->AddSolution_Avg(iVar_Avg, solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetRoe_Dissipation());
         }
         
-        if (config->GetWall_Models()){
+        if (config->GetWall_Models() || config->GetWall_Functions()){
           iVar_Avg += 1;
           solver_container[MESH_0][FLOW_SOL]->node[iPoint]->AddSolution_Avg(iVar_Avg, solver_container[MESH_0][FLOW_SOL]->node[iPoint]->GetTauWall());
         }
@@ -4365,54 +4365,30 @@ void CEulerSolver::Source_Residual(CGeometry *geometry, CSolver **solver_contain
       
       // Call the synthetic turbulence calculation during the 1st DTS internal iteration.
       SetSynthetic_Turbulence(geometry, solver_container, config);
-      
-      for(vector<int>::size_type ii = 0; ii != LocalPoints.size(); ii++) {
-      
-        // Add the perturbations to the auxliar array of primitive variables
-        for (iDim = 0; iDim < nDim; iDim++){
-          Uaux[iDim+1] = VSTG_VelFluct[ii*nDim+iDim];
-        }
-        
-        /*--- Load the primitive variables (Velocity fluctuations) ---*/
-        numerics->SetPrimitive(Uaux, Uaux);
-        
-        /*--- Load the conservative variables ---*/
-        numerics->SetConservative(node[LocalPoints[ii]]->GetSolution(), node[LocalPoints[ii]]->GetSolution());
-        
-        /*--- Load the volume of the dual mesh cell ---*/
-        numerics->SetVolume(geometry->node[LocalPoints[ii]]->GetVolume());
-
-        /*--- Compute the body force source residual ---*/
-        numerics->ComputeResidual(Residual, config);
-        
-        /*--- Add the source residual to the total ---*/
-        LinSysRes.AddBlock(LocalPoints[ii], Residual);
-
-      }
     }
-    else{
-      for(vector<int>::size_type ii = 0; ii != LocalPoints.size(); ii++) {
-        
-        // Load to Uaux the fluctuations already calculated.
-        for (iDim = 0; iDim < nDim; iDim++)
-          Uaux[iDim+1] = VSTG_VelFluct[ii*nDim+iDim];
-        
-        /*--- Load the primitive variables (Velocity fluctuations) ---*/
-        numerics->SetPrimitive(Uaux, Uaux);
-        
-        /*--- Load the conservative variables ---*/
-        numerics->SetConservative(node[LocalPoints[ii]]->GetSolution(), node[LocalPoints[ii]]->GetSolution());
-        
-        /*--- Load the volume of the dual mesh cell ---*/
-        numerics->SetVolume(geometry->node[LocalPoints[ii]]->GetVolume());
-        
-        /*--- Compute the body force source residual ---*/
-        numerics->ComputeResidual(Residual, config);
-        
-        /*--- Add the source residual to the total ---*/
-        LinSysRes.AddBlock(LocalPoints[ii], Residual);
-
+    
+    for(vector<int>::size_type ii = 0; ii != LocalPoints.size(); ii++) {
+      
+      // Add the perturbations to the auxliar array of primitive variables
+      for (iDim = 0; iDim < nDim; iDim++){
+        Uaux[iDim+1] = VSTG_VelFluct[ii*nDim+iDim];
       }
+      
+      /*--- Load the primitive variables (Velocity fluctuations) ---*/
+      numerics->SetPrimitive(Uaux, Uaux);
+      
+      /*--- Load the conservative variables ---*/
+      numerics->SetConservative(node[LocalPoints[ii]]->GetSolution(), node[LocalPoints[ii]]->GetSolution());
+      
+      /*--- Load the volume of the dual mesh cell ---*/
+      numerics->SetVolume(geometry->node[LocalPoints[ii]]->GetVolume());
+
+      /*--- Compute the body force source residual ---*/
+      numerics->ComputeResidual(Residual, config);
+      
+      /*--- Add the source residual to the total ---*/
+      LinSysRes.AddBlock(LocalPoints[ii], Residual);
+
     }
   }
 

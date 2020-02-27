@@ -13310,7 +13310,7 @@ void COutput::LoadLocalData_Flow(CConfig *config, CGeometry *geometry, CSolver *
               iVar++;
             }
             
-            if (wall_model){
+            if (wall_model || wall_function){
               iVar_Avg += 1;
               Local_Data[jPoint][iVar] = solver[FLOW_SOL]->node[iPoint]->GetSolution_Avg(iVar_Avg) / Avg_Iter;
               iVar++;

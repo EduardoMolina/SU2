@@ -687,7 +687,7 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
           solver->node[iPoint]->AddSolution_Avg(iVar_Avg, solver->node[iPoint]->GetRoe_Dissipation());
         }
         
-        if (config->GetWall_Models()){
+        if (config->GetWall_Models() || config->GetWall_Functions()){
           iVar_Avg += 1;
           solver->node[iPoint]->AddSolution_Avg(iVar_Avg, solver->node[iPoint]->GetTauWall());
         }
@@ -1231,7 +1231,7 @@ void CIntegration::SetUnsteadyAverage(CGeometry *geometry, CSolver *solver, CCon
         solver->node[iPoint]->AddSolution_Avg(iVar_Avg, solver->node[iPoint]->GetRoe_Dissipation());
       }
 
-      if (config->GetWall_Models()){
+      if (config->GetWall_Models() || config->GetWall_Functions()){
         iVar_Avg += 1;
         solver->node[iPoint]->AddSolution_Avg(iVar_Avg, solver->node[iPoint]->GetTauWall());
       }
