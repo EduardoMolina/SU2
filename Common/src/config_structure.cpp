@@ -2333,7 +2333,7 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   addEnumOption("SYNTHETIC_TURBULENCE", Kind_SyntheticTurbulence, SyntheticTurbulence_Map, NO_SYNTHETICTURBULENCE);
 
   /* DESCRIPTION: Num Constant */
-  addUnsignedLongOption("NUMBER_FOURIER_MODES", NumberModes, 100);
+  addUnsignedLongOption("NUMBER_FOURIER_MODES", NumberModes, 250);
   
   /* DESCRIPTION: Values of the box to impose a synthetic turbulence (x1, y1, z1, x2, y2, z2) */
   default_stg_val[0]=0.0; default_stg_val[1]=0.0; default_stg_val[2]=0.0;
