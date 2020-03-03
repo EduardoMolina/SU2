@@ -6853,7 +6853,9 @@ void CPhysicalGeometry::SetSendReceive(CConfig *config) {
         additional elements (and nodes) may be added as halo's. Only needed
         in parallel mode. ---*/
 #ifdef HAVE_MPI
-  if (config->GetWall_Models && !config->GetWMLES_1stGridPoint()){
+  bool wmles          = config->GetWall_Models();
+  bool wmles_1stPoint = config->GetWMLES_1stGridPoint();
+  if (wmles && !wmles_1stPoint){
 
     if (rank == MASTER_NODE)
       cout << "Adding wall model donor elements to the halo list. " << endl;
