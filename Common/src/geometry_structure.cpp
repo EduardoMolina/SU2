@@ -6853,7 +6853,7 @@ void CPhysicalGeometry::SetSendReceive(CConfig *config) {
         additional elements (and nodes) may be added as halo's. Only needed
         in parallel mode. ---*/
 #ifdef HAVE_MPI
-  if (config->GetWall_Models()){
+  if (config->GetWall_Models && !config->GetWMLES_1stGridPoint()){
 
     if (rank == MASTER_NODE)
       cout << "Adding wall model donor elements to the halo list. " << endl;
@@ -11780,6 +11780,7 @@ void CPhysicalGeometry::WallModelPreprocessing(CConfig *config) {
               /* Donor element not found in the local ADT. This should not happen,
                  because all halo donors should have been added in the function
                  CPhysicalGeometry::AddWallModelDonorHalos. */
+              std::cout << "Marker tag    " << Marker_Tag << std::endl;
               std::cout << "iMarker:      " << iMarker << ", iVertex: " << iVertex << std::endl;
               std::cout << "Coord:        " << Coord[0] << " " << Coord[1] << " " << Coord[2] << std::endl;
               std::cout << "normals:      " << normals[0] << " " << normals[1] << " " << normals[2] << std::endl;

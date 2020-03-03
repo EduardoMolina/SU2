@@ -4043,6 +4043,8 @@ public:
    * \param[in] config - Definition of the particular problem.
    */
   virtual void SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver** solver_container, CConfig* config, unsigned short val_irkstep);
+  
+  virtual void SetTauWallHeatFlux_WMLES1stPoint(CGeometry *geometry, CSolver** solver_container, CConfig* config, unsigned short val_irkstep);
 
   /*!
    * \brief A virtual member.
@@ -8873,6 +8875,8 @@ public:
    * \param[in] config - Definition of the particular problem.
    */
   void SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver** solver_container, CConfig* config, unsigned short val_irkstep);
+  
+  void SetTauWallHeatFlux_WMLES1stPoint(CGeometry *geometry, CSolver** solver_container, CConfig* config, unsigned short val_irkstep);
 
   /*!
    * \brief Computes the eddy viscosity at the first point of the wall.

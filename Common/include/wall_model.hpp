@@ -96,9 +96,11 @@ public:
                                           su2double       &qWall,
                                           su2double       &ViscosityWall,
                                           su2double       &kOverCvWall);
+  
+  virtual void UpdateExchangeLocation(const su2double h_wm_new);
+  
 protected:
 
-  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
   su2double Pr_lam;  /*!< \brief Laminar Prandtl number. */
   su2double Pr_turb; /*!< \brief Turbulent Prandtl number. */
   su2double karman;  /*!< \brief von Karman constant. */
@@ -164,9 +166,12 @@ public:
                                   su2double       &qWall,
                                   su2double       &ViscosityWall,
                                   su2double       &kOverCvWall);
+  
+  void UpdateExchangeLocation(const su2double h_wm_new);
 
 private:
 
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
   su2double expansionRatio;   /*!< \brief  Stretching factor used for the wall model grid. */
   int       numPoints;        /*!< \brief  Number of points used in the wall model grid. */
 
@@ -229,9 +234,12 @@ public:
                                   su2double       &ViscosityWall,
                                   su2double       &kOverCvWall);
   
+  void UpdateExchangeLocation(const su2double h_wm_new);
+  
 private:
 
   su2double C;  /*!< \brief Constant to match the Reichardt BL profile. */
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
 
   /*!
    * \brief Default constructor of the class, disabled.

@@ -3856,6 +3856,12 @@ void CConfig::SetPostprocessing(unsigned short val_software, unsigned short val_
         if ((Kind_WallFunctions[iMarker] == ADAPTIVE_WALL_FUNCTION) || (Kind_WallFunctions[iMarker]==NONEQUILIBRIUM_WALL_MODEL) ||
                 (Kind_WallFunctions[iMarker] == STANDARD_WALL_FUNCTION))
           SU2_MPI::Error(string("For ILES problems, use EQUILIBRIUM_WALL_MODEL or LOGARITHMIC_WALL_MODEL.\n"), CURRENT_FUNCTION);
+        else{
+          const su2double *doubleInfo = DoubleInfo_WallFunctions[iMarker];
+          if (doubleInfo[0] < 1e-10){
+            UseFirstPointWMLES = true;
+          }
+        }
       }
 //      else{
 //        SU2_MPI::Error(string("Please check the correct use of Wall Functions/Models.\n"), CURRENT_FUNCTION);

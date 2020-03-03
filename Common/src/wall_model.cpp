@@ -61,6 +61,8 @@ CWallModel::CWallModel(CConfig *config) {
   Uref = config->GetVelocity_Ref();
 }
 
+void CWallModel::UpdateExchangeLocation(const su2double h_wm_new){}
+
 void CWallModel::WallShearStressAndHeatFlux(const su2double rhoExchange,
                                             const su2double velExchange,
                                             const su2double muExchange,
@@ -115,6 +117,8 @@ CWallModel1DEQ::CWallModel1DEQ(CConfig      *config,
     y_cv[i] = y_cv[i]/y_max * h_wm;
   }
 }
+
+void CWallModel1DEQ::UpdateExchangeLocation(const su2double h_wm_new){}
 
 void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
                                                 const su2double velExchange,
@@ -361,6 +365,10 @@ CWallModelLogLaw::CWallModelLogLaw(CConfig      *config,
   const su2double *doubleInfo = config->GetWallFunction_DoubleInfo(Marker_Tag);
   h_wm = doubleInfo[0];
     
+}
+
+void CWallModelLogLaw::UpdateExchangeLocation(const su2double h_wm_new){
+  h_wm = h_wm_new;
 }
 
 void CWallModelLogLaw::WallShearStressAndHeatFlux(const su2double tExchange,

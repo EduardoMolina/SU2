@@ -948,7 +948,8 @@ void CDriver::Geometrical_Preprocessing() {
   unsigned long iPoint;
   bool fea = false;
   bool wall_models = config_container[ZONE_0]->GetWall_Models();
-
+  bool wmles_1stPoint = config_container[ZONE_0]->GetWMLES_1stGridPoint();
+  
   for (iZone = 0; iZone < nZone; iZone++) {
 
     fea = ((config_container[iZone]->GetKind_Solver() == FEM_ELASTICITY) ||
@@ -1013,7 +1014,7 @@ void CDriver::Geometrical_Preprocessing() {
 
       /*--- Interpolate the donor information for the wall model, if needed. ---*/
 
-      if( wall_models ) {
+      if( wall_models && !wmles_1stPoint) {
         if (rank == MASTER_NODE) cout << "Preprocessing for the wall models." << endl;
         geometry_container[iZone][iInst][MESH_0]->WallModelPreprocessing(config_container[iZone]);
       }

@@ -959,6 +959,7 @@ private:
   bool ExtraOutput;
   bool Wall_Functions;         /*!< \brief Use wall functions with the turbulence model */
   bool Wall_Models;         /*!< \brief Use wall models for Large Eddy Simulations (WMLES) */
+  bool UseFirstPointWMLES;
   long ExtraHeatOutputZone;   /*!< \brief Heat solver zone with extra screen output */
   bool DeadLoad; 	          	/*!< Application of dead loads to the FE analysis */
   bool PseudoStatic;    /*!< Application of dead loads to the FE analysis */
@@ -8934,6 +8935,8 @@ public:
    * \return <code>TRUE</code> if wall models are on; otherwise <code>FALSE</code>.
    */
   bool GetWall_Models(void);
+  
+  bool GetWMLES_1stGridPoint(void);
   
   /*!
    * \brief Get the AD support.

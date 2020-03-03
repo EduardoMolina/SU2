@@ -1062,6 +1062,8 @@ inline void CSolver::SetEddyViscFirstPoint(CGeometry *geometry, CSolver** solver
 
 inline void CSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver** solver_container, CConfig* config, unsigned short val_irkstep){}
 
+inline void CSolver::SetTauWallHeatFlux_WMLES1stPoint(CGeometry *geometry, CSolver** solver_container, CConfig* config, unsigned short val_irkstep){}
+
 inline void CSolver::Setmut_LES(CGeometry *geometry, CSolver** solver_container, CConfig* config){}
 
 inline void CSolver::CorrectMassFlow(CGeometry *geometry, CSolver** solver_container, CConfig* config){}
