@@ -19711,7 +19711,7 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
       WallDistMod = sqrt(WallDistMod);
       
       su2double dirTan[3] = {0.0, 0.0, 0.0};
-      for(iDim = 0; iDim<nDim; iDim++) dirTan[iDim] = Vel[iDim]/VelTangMod;
+      for(iDim = 0; iDim<nDim; iDim++) dirTan[iDim] = VelTang[iDim]/VelTangMod;
       
       if (iRKStep == 0){
         /* Compute the wall shear stress and heat flux vector using

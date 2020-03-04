@@ -982,7 +982,7 @@ void CDriver::Geometrical_Preprocessing() {
             already been done. ---*/
 
       geometry_container[iZone][iInst][MESH_0]->SetBoundVolume();
-      if( !wall_models ) {
+      if( !wall_models || wmles_1stPoint) {
         if (config_container[iZone]->GetReorientElements()) {
           if (rank == MASTER_NODE) cout << "Checking the numerical grid orientation." << endl;
           geometry_container[iZone][iInst][MESH_0]->Check_IntElem_Orientation(config_container[iZone]);
@@ -1002,7 +1002,7 @@ void CDriver::Geometrical_Preprocessing() {
       geometry_container[iZone][iInst][MESH_0]->SetCoord_CG();
 
       /*--- Create the control volume structures or update if using wall model. ---*/
-      if (!wall_models){
+      if (!wall_models || wmles_1stPoint){
         if ((rank == MASTER_NODE) && (!fea)) cout << "Setting the control volume structure." << endl;
         geometry_container[iZone][iInst][MESH_0]->SetControlVolume(config_container[iZone], ALLOCATE);
         geometry_container[iZone][iInst][MESH_0]->SetBoundControlVolume(config_container[iZone], ALLOCATE);
