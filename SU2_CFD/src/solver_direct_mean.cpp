@@ -19603,7 +19603,9 @@ bool CalculateWallModel = false;
 su2double Vel[3], VelNormal, VelTang[3], VelTangMod, WallDist[3], WallDistMod;
 su2double T_Normal, P_Normal, mu_Normal;
 su2double *Coord, *Coord_Normal, UnitNormal[3], *Normal, Area;
- 
+
+su2double TimeStep = config->GetDelta_UnstTimeND();
+  
 for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
   
   if ((config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX) ||
@@ -19677,6 +19679,24 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
       P_Normal = node[Point_Normal]->GetPressure();
       T_Normal  = node[Point_Normal]->GetTemperature();
       mu_Normal = node[Point_Normal]->GetLaminarViscosity();
+      
+      /*--- Compute the time filter ---*/
+      su2double VelMag = 0.0;
+      for (iDim = 0; iDim < nDim; iDim++)
+        VelMag += Vel[iDim]*Vel[iDim];
+      VelMag = sqrt(VelMag);
+      
+      su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
+      su2double TimeFilter = TimeStep / TimeStepC;
+      
+      /*--- Filter the LES velocity ---*/
+      su2double *Solution_n = node[Point_Normal]->GetSolution_time_n();
+      su2double Vel_n[3] = {0.0, 0.0, 0.0};
+      for (iDim = 0; iDim < nDim; iDim++)
+        Vel_n[iDim] = Solution_n[iDim + 1] / Solution_n[0];
+      
+      for (iDim = 0; iDim < nDim; iDim++)
+        Vel[iDim] = (1.0 - TimeFilter) * Vel_n[iDim] + TimeFilter * Vel[iDim];
       
       /*--- Compute dimensional variables before calling the Wall Model ---*/
       for (iDim = 0; iDim < nDim; iDim++ ){
