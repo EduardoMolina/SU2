@@ -5605,7 +5605,6 @@ void CAvgGrad_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jac
     Mean_qWall   = 0.5*(qWall_i + qWall_j);
     for (iDim = 0; iDim < nDim; iDim++){
       Mean_DirTan[iDim] = 0.5 * (DirTan_i[iDim] + DirTan_j[iDim]);
-      Mean_DirNormal[iDim] = 0.5 * (DirNormal_i[iDim] + DirNormal_j[iDim]);
     }
 
   }
@@ -5615,7 +5614,6 @@ void CAvgGrad_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jac
     Mean_qWall = qWall_i;
     for (iDim = 0; iDim < nDim; iDim++){
       Mean_DirTan[iDim] = DirTan_i[iDim];
-      Mean_DirNormal[iDim] = DirNormal_i[iDim];
     }
   } 
   else if (!TauWallFlag_i && TauWallFlag_j){
@@ -5624,7 +5622,6 @@ void CAvgGrad_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jac
     Mean_qWall = qWall_j;
     for (iDim = 0; iDim < nDim; iDim++){
       Mean_DirTan[iDim] = DirTan_j[iDim];
-      Mean_DirNormal[iDim] = DirNormal_j[iDim];
     }
   }
   else{
@@ -5633,7 +5630,6 @@ void CAvgGrad_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jac
     Mean_qWall = 0.0;
     for (iDim = 0; iDim < nDim; iDim++){
       Mean_DirTan[iDim] = 0.0;
-      Mean_DirNormal[iDim] = 0.0;
     }
   }
    
@@ -5655,14 +5651,8 @@ void CAvgGrad_Flow::ComputeResidual(su2double *val_residual, su2double **val_Jac
                     Mean_Eddy_Viscosity);
 
   if (UseWallFunction){
-//    if (config->GetWall_Models())
-//      ReplaceTauWall(Mean_PrimVar, Normal, Mean_DirTan, Mean_DirNormal, Mean_TauWall, Mean_qWall);
-//    else if (config->GetWall_Functions()){
       AddTauWall(Normal, Mean_TauWall);
       GetViscousProjFlux(Mean_PrimVar, Normal);
-//    }
-//    else
-//      SU2_MPI::Error("There is something wrong with the wall models/functions specification.", CURRENT_FUNCTION);
   }
   else GetViscousProjFlux(Mean_PrimVar, Normal);
   

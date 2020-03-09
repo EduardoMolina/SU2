@@ -606,6 +606,7 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
   su2double *Solution_Avg_Aux = NULL;
   su2double *Aux_Frict_x = NULL, *Aux_Frict_y = NULL, *Aux_Frict_z = NULL;
   unsigned long iMarker, iVertex;
+  unsigned long Actual_Iter = (config->GetExtIter() - config->GetUnst_RestartIter());
   
   /*--- Copy from COutput::LoadLocalData_Flow for computing mean skin friction values
    *
@@ -709,6 +710,83 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
       }
       
     }
+  }
+  
+  if (config->GetWMLES_1stGridPoint()){
+    
+    unsigned short nDim = geometry->GetnDim();
+    unsigned long Point_Normal;
+    su2double *Coord, *Coord_Normal, *Vel_WM, WallDist[3]={0.0,0.0,0.0};
+    su2double Vel[3]={0.0,0.0,0.0};
+    
+    /* Loop over the markers and select the ones for which a wall model
+     treatment is carried out. */
+    for(unsigned short iMarker=0; iMarker<config->GetnMarker_All(); ++iMarker) {
+      switch (config->GetMarker_All_KindBC(iMarker)) {
+        case ISOTHERMAL:
+        case HEAT_FLUX:{
+          const string Marker_Tag = config->GetMarker_All_TagBound(iMarker);
+
+          /* Set the eddy viscosity to zero if it is using a wall model */
+          if ((config->GetWallFunction_Treatment(Marker_Tag) == EQUILIBRIUM_WALL_MODEL) ||
+              (config->GetWallFunction_Treatment(Marker_Tag) == LOGARITHMIC_WALL_MODEL)){
+
+            for (unsigned long iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+              iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+              
+              Point_Normal = geometry->vertex[iMarker][iVertex]->GetNormal_Neighbor();
+              
+              /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+              if (!geometry->node[iPoint]->GetDomain()) continue;
+              
+              /*--- Get coordinates of the current vertex and nearest normal point ---*/
+              
+              Coord = geometry->node[iPoint]->GetCoord();
+              Coord_Normal = geometry->node[Point_Normal]->GetCoord();
+              
+              /*--- Compute normal distance of the interior point from the wall ---*/
+              
+              for (iDim = 0; iDim < nDim; iDim++)
+                WallDist[iDim] = (Coord[iDim] - Coord_Normal[iDim]);
+              
+              su2double WallDistMod = 0.0;
+              for (iDim = 0; iDim < nDim; iDim++)
+                WallDistMod += WallDist[iDim]*WallDist[iDim];
+              WallDistMod = sqrt(WallDistMod);
+
+              Vel_WM = solver->node[iPoint]->GetDirNormalWM();
+              
+              for (iDim = 0; iDim < nDim; iDim++)
+                Vel[iDim] = solver->node[Point_Normal]->GetVelocity(iDim);
+              
+              /*--- Compute the time filter ---*/
+              su2double VelMag = 0.0;
+              for (iDim = 0; iDim < nDim; iDim++)
+                VelMag += Vel[iDim]*Vel[iDim];
+              VelMag = sqrt(VelMag);
+              
+              //su2double vonk = 0.4; //von Karman constant
+              //su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(node[iPoint]->GetTauWall()/node[iPoint]->GetDensity())));
+              su2double TimeStep   = config->GetDelta_UnstTimeND();
+              su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
+              su2double TimeFilter = TimeStep / TimeStepC;
+                            
+              if (Actual_Iter > 0){
+                /*--- Filter the LES velocity ---*/
+                for (iDim = 0; iDim < nDim; iDim++)
+                  Vel[iDim] = (1.0 - TimeFilter) * Vel_WM[iDim] + TimeFilter * Vel[iDim];
+              }
+              solver->node[iPoint]->SetDirNormalWM(Vel);
+              
+            }
+          }
+        }
+          break;
+        default:
+          break;
+      }
+    }
+
   }
   
   for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {

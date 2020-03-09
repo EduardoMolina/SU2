@@ -16847,7 +16847,6 @@ void CNSSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_container
     numerics->SetTauWall_Flag(node[iPoint]->GetTauWall_Flag(), node[jPoint]->GetTauWall_Flag());
     numerics->SetTauWall(node[iPoint]->GetTauWall(), node[jPoint]->GetTauWall());
     numerics->SetDirTan(node[iPoint]->GetDirTanWM(), node[jPoint]->GetDirTanWM());
-    numerics->SetDirNormal(node[iPoint]->GetDirNormalWM(), node[jPoint]->GetDirNormalWM());
     numerics->SetqWall(node[iPoint]->GetHeatFlux(), node[jPoint]->GetHeatFlux());
     
     /*--- Compute and update residual ---*/
@@ -17971,7 +17970,6 @@ void CNSSolver::BC_HeatFlux_WallModel(CGeometry      *geometry,
         /*--- Weakly enforce the WM heat flux for the energy equation---*/
         su2double velWall_tan = 0.;
         su2double *DirTanWM = node[iPoint]->GetDirTanWM();
-  //      su2double *DirNorWM = node[iPoint]->GetDirNormalWM();
 
         su2double TauWall = node[iPoint]->GetTauWall();
         su2double Wall_HeatFlux = node[iPoint]->GetHeatFlux();
@@ -18462,7 +18460,6 @@ void CNSSolver::BC_Isothermal_WallModel(CGeometry      *geometry,
       /*--- Weakly enforce the WM heat flux for the energy equation---*/
       su2double velWall_tan = 0.;
       su2double *DirTanWM = node[iPoint]->GetDirTanWM();
-//      su2double *DirNorWM = node[iPoint]->GetDirNormalWM();
 
       su2double TauWall = node[iPoint]->GetTauWall();
       su2double Wall_HeatFlux = node[iPoint]->GetHeatFlux();
@@ -19295,29 +19292,29 @@ void CNSSolver::Setmut_LES(CGeometry *geometry, CSolver **solver_container, CCon
     node[iPoint]->SetEddyViscosity(muTurb);
   }
   
-  /* Loop over the markers and select the ones for which a wall model
-   treatment is carried out. */
-  for(unsigned short iMarker=0; iMarker<nMarker; ++iMarker) {
-    switch (config->GetMarker_All_KindBC(iMarker)) {
-      case ISOTHERMAL:
-      case HEAT_FLUX:{
-        const string Marker_Tag = config->GetMarker_All_TagBound(iMarker);
-        
-        /* Set the eddy viscosity to zero if it is using a wall model */
-        if ((config->GetWallFunction_Treatment(Marker_Tag) == EQUILIBRIUM_WALL_MODEL) ||
-            (config->GetWallFunction_Treatment(Marker_Tag) == LOGARITHMIC_WALL_MODEL)){
-          
-          for (unsigned long iVertex = 0; iVertex < nVertex[iMarker]; iVertex++) {
-            iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
-            node[iPoint]->SetEddyViscosity(0.0);
-          }
-        }
-      }
-        break;
-      default:
-        break;
-    }
-  }
+//  /* Loop over the markers and select the ones for which a wall model
+//   treatment is carried out. */
+//  for(unsigned short iMarker=0; iMarker<nMarker; ++iMarker) {
+//    switch (config->GetMarker_All_KindBC(iMarker)) {
+//      case ISOTHERMAL:
+//      case HEAT_FLUX:{
+//        const string Marker_Tag = config->GetMarker_All_TagBound(iMarker);
+//
+//        /* Set the eddy viscosity to zero if it is using a wall model */
+//        if ((config->GetWallFunction_Treatment(Marker_Tag) == EQUILIBRIUM_WALL_MODEL) ||
+//            (config->GetWallFunction_Treatment(Marker_Tag) == LOGARITHMIC_WALL_MODEL)){
+//
+//          for (unsigned long iVertex = 0; iVertex < nVertex[iMarker]; iVertex++) {
+//            iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+//            node[iPoint]->SetEddyViscosity(0.0);
+//          }
+//        }
+//      }
+//        break;
+//      default:
+//        break;
+//    }
+//  }
   
   /*--- MPI parallelization ---*/
   
@@ -19550,9 +19547,7 @@ void CNSSolver::SetTauWallHeatFlux_WMLES(CGeometry *geometry, CSolver **solver_c
           node[iPoint]->SetHeatFlux(qWall);
           node[iPoint]->SetDirTanWM(dirTan);
           node[iPoint]->SetLaminarViscosity(ViscosityWall);
-          node[iPoint]->SetEddyViscosity(0.0);
-          node[iPoint]->SetDirNormalWM(Unit_Normal);
-          
+          //node[iPoint]->SetEddyViscosity(0.0);
         }
 //        else{
 //          /*---
@@ -19659,6 +19654,16 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
       Coord = geometry->node[iPoint]->GetCoord();
       Coord_Normal = geometry->node[Point_Normal]->GetCoord();
       
+      /*--- Compute normal distance of the interior point from the wall ---*/
+      
+      for (iDim = 0; iDim < nDim; iDim++)
+        WallDist[iDim] = (Coord[iDim] - Coord_Normal[iDim]);
+      
+      WallDistMod = 0.0;
+      for (iDim = 0; iDim < nDim; iDim++)
+        WallDistMod += WallDist[iDim]*WallDist[iDim];
+      WallDistMod = sqrt(WallDistMod);
+      
       /*--- Compute dual-grid area and boundary normal ---*/
       
       Normal = geometry->vertex[iMarker][iVertex]->GetNormal();
@@ -19686,17 +19691,20 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
         VelMag += Vel[iDim]*Vel[iDim];
       VelMag = sqrt(VelMag);
       
+      //su2double vonk = 0.4; //von Karman constant
+      //su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(node[iPoint]->GetTauWall()/node[iPoint]->GetDensity())));
       su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
       su2double TimeFilter = TimeStep / TimeStepC;
       
       /*--- Filter the LES velocity ---*/
-      su2double *Solution_n = node[Point_Normal]->GetSolution_time_n();
-      su2double Vel_n[3] = {0.0, 0.0, 0.0};
-      for (iDim = 0; iDim < nDim; iDim++)
-        Vel_n[iDim] = Solution_n[iDim + 1] / Solution_n[0];
+      int Actual_Iter = (int)(config->GetExtIter() - config->GetUnst_RestartIter());
+      su2double *Vel_WM = node[iPoint]->GetDirNormalWM();
       
-      for (iDim = 0; iDim < nDim; iDim++)
-        Vel[iDim] = (1.0 - TimeFilter) * Vel_n[iDim] + TimeFilter * Vel[iDim];
+      if (Actual_Iter > 0){
+        /*--- Filter the LES velocity ---*/
+        for (iDim = 0; iDim < nDim; iDim++)
+          Vel[iDim] = (1.0 - TimeFilter) * Vel_WM[iDim] + TimeFilter * Vel[iDim];
+      }
       
       /*--- Compute dimensional variables before calling the Wall Model ---*/
       for (iDim = 0; iDim < nDim; iDim++ ){
@@ -19719,17 +19727,7 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
         VelTangMod += VelTang[iDim]*VelTang[iDim];
       VelTangMod = sqrt(VelTangMod);
       VelTangMod = max(VelTangMod,1.e-25);
-      
-      /*--- Compute normal distance of the interior point from the wall ---*/
-      
-      for (iDim = 0; iDim < nDim; iDim++)
-        WallDist[iDim] = (Coord[iDim] - Coord_Normal[iDim]);
-      
-      WallDistMod = 0.0;
-      for (iDim = 0; iDim < nDim; iDim++)
-        WallDistMod += WallDist[iDim]*WallDist[iDim];
-      WallDistMod = sqrt(WallDistMod);
-      
+            
       su2double dirTan[3] = {0.0, 0.0, 0.0};
       for(iDim = 0; iDim<nDim; iDim++) dirTan[iDim] = VelTang[iDim]/VelTangMod;
       
@@ -19755,8 +19753,7 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
         node[iPoint]->SetHeatFlux(qWall);
         node[iPoint]->SetDirTanWM(dirTan);
         node[iPoint]->SetLaminarViscosity(ViscosityWall);
-        node[iPoint]->SetEddyViscosity(0.0);
-        node[iPoint]->SetDirNormalWM(UnitNormal);
+        //node[iPoint]->SetEddyViscosity(0.0);
         
       }
     }
