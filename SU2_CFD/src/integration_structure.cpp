@@ -669,17 +669,34 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
       solver->node[iPoint]->AddSolution_Avg(iVar_Avg, solver->node[iPoint]->GetPressure());
       
       if ((config->GetKind_Solver() == RANS) || (config->GetKind_Solver() == NAVIER_STOKES)){
-        iVar_Avg += 1;
-        solver->node[iPoint]->AddSolution_Avg(iVar_Avg, Aux_Frict_x[iPoint]);
         
-        iVar_Avg += 1;
-        solver->node[iPoint]->AddSolution_Avg(iVar_Avg, Aux_Frict_y[iPoint]);
-        
-        if (geometry->GetnDim() == 3){
+        if (config->GetWall_Models() || config->GetWall_Functions()){
+          su2double *DirTanWM = solver->node[iPoint]->GetDirTanWM();
+          su2double TauWall   = solver->node[iPoint]->GetTauWall();
           iVar_Avg += 1;
-          solver->node[iPoint]->AddSolution_Avg(iVar_Avg, Aux_Frict_z[iPoint]);
+          solver->node[iPoint]->AddSolution_Avg(iVar_Avg, TauWall * DirTanWM[0]);
+          
+          iVar_Avg += 1;
+          solver->node[iPoint]->AddSolution_Avg(iVar_Avg, TauWall * DirTanWM[1]);
+          
+          if (geometry->GetnDim() == 3){
+            iVar_Avg += 1;
+            solver->node[iPoint]->AddSolution_Avg(iVar_Avg, TauWall * DirTanWM[2]);
+          }
+
         }
-        
+        else{
+          iVar_Avg += 1;
+          solver->node[iPoint]->AddSolution_Avg(iVar_Avg, Aux_Frict_x[iPoint]);
+          
+          iVar_Avg += 1;
+          solver->node[iPoint]->AddSolution_Avg(iVar_Avg, Aux_Frict_y[iPoint]);
+          
+          if (geometry->GetnDim() == 3){
+            iVar_Avg += 1;
+            solver->node[iPoint]->AddSolution_Avg(iVar_Avg, Aux_Frict_z[iPoint]);
+          }
+        }
         iVar_Avg += 1;
         solver->node[iPoint]->AddSolution_Avg(iVar_Avg, solver->node[iPoint]->GetEddyViscosity()/solver->node[iPoint]->GetLaminarViscosity());
         
@@ -718,6 +735,14 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
     unsigned long Point_Normal;
     su2double *Coord, *Coord_Normal, *Vel_WM, WallDist[3]={0.0,0.0,0.0};
     su2double Vel[3]={0.0,0.0,0.0};
+    
+    su2double TimeStep   = config->GetDelta_UnstTimeND();
+    su2double FilterAmp  = 1.0;
+    
+    su2double LocalFilterMax = 0.0,   LocalVelMagMax = 0.0;
+    su2double LocalFilterMin = 999.0, LocalVelMagMin = 999.0;
+
+    su2double GlobalFilterMax, GlobalVelMagMax, GlobalFilterMin, GlobalVelMagMin;
     
     /* Loop over the markers and select the ones for which a wall model
      treatment is carried out. */
@@ -765,12 +790,14 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
                 VelMag += Vel[iDim]*Vel[iDim];
               VelMag = sqrt(VelMag);
               
-              //su2double vonk = 0.4; //von Karman constant
-              //su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(node[iPoint]->GetTauWall()/node[iPoint]->GetDensity())));
-              su2double TimeStep   = config->GetDelta_UnstTimeND();
-              su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
-              su2double TimeFilter = TimeStep / TimeStepC;
-                            
+              su2double vonk = 0.4; //von Karman constant
+              su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(solver->node[iPoint]->GetTauWall()/solver->node[iPoint]->GetDensity())));
+              //su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
+              su2double TimeFilter = FilterAmp * TimeStep / TimeStepC;
+              
+              LocalFilterMax = max(LocalFilterMax,TimeFilter);
+              LocalFilterMin = min(LocalFilterMin,TimeFilter);
+              
               if (Actual_Iter > 0){
                 /*--- Filter the LES velocity ---*/
                 for (iDim = 0; iDim < nDim; iDim++)
@@ -778,6 +805,12 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
               }
               solver->node[iPoint]->SetDirNormalWM(Vel);
               
+              VelMag = 0.0;
+              for (iDim = 0; iDim < nDim; iDim++)
+                VelMag += Vel[iDim]*Vel[iDim];
+              VelMag = sqrt(VelMag);
+              LocalVelMagMax = max(LocalVelMagMax, VelMag);
+              LocalVelMagMin = min(LocalVelMagMin, VelMag);
             }
           }
         }
@@ -786,7 +819,24 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
           break;
       }
     }
+      /*--- Reduction to find the min and max values globally. ---*/
+#ifdef HAVE_MPI
+    SU2_MPI::Allreduce(&LocalFilterMin, &GlobalFilterMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    SU2_MPI::Allreduce(&LocalFilterMax, &GlobalFilterMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    SU2_MPI::Allreduce(&LocalVelMagMin, &GlobalVelMagMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    SU2_MPI::Allreduce(&LocalVelMagMax, &GlobalVelMagMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
+#else
+    GlobalFilterMax = LocalFilterMax;
+    GlobalFilterMin = LocalFilterMin;
+    GlobalVelMagMax = LocalVelMagMax;
+    GlobalVelMagMin = LocalVelMagMin;
+#endif
+  
+    if (rank == MASTER_NODE){
+      cout << "\nMaximum Time Filter: " << GlobalFilterMax << " Maximum Filtered Wall Model Velocity: " << GlobalVelMagMax << endl;
+      cout <<   "Minimum Time Filter: " << GlobalFilterMin << " Minimum Filtered Wall Model Velocity: " << GlobalVelMagMin << endl;
+    }
   }
   
   for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {

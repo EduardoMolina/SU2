@@ -19399,10 +19399,10 @@ void CNSSolver::CorrectMassFlow(CGeometry *geometry, CSolver **solver_container,
   config->SetMassFlowCorrection(BodyForce_new);
   
   if (rank == MASTER_NODE)
-    if (((config->GetExtIter() % config->GetWrt_Sol_Freq() == 0) &&
-         (config->GetUnsteady_Simulation() == DT_STEPPING_2ND)) ||
-        (config->GetSynchronizationTimeReached() &&
-         (config->GetUnsteady_Simulation() == TIME_STEPPING)))
+//    if (((config->GetExtIter() % config->GetWrt_Sol_Freq() == 0) &&
+//         (config->GetUnsteady_Simulation() == DT_STEPPING_2ND)) ||
+//        (config->GetSynchronizationTimeReached() &&
+//         (config->GetUnsteady_Simulation() == TIME_STEPPING)))
         cout << "*** --- Initial Bulk Velocity: " << Target_Mach << " Actual Bulk Velocity: " << Global_MassFlow << " Actual Body Force: " << BodyForce_old << " New Body Force: " << BodyForce_new << " dMach_dBodyForce: " << dMach_dBodyForce << " 	--- ***" << endl;
   
 }
@@ -19599,7 +19599,8 @@ su2double Vel[3], VelNormal, VelTang[3], VelTangMod, WallDist[3], WallDistMod;
 su2double T_Normal, P_Normal, mu_Normal;
 su2double *Coord, *Coord_Normal, UnitNormal[3], *Normal, Area;
 
-su2double TimeStep = config->GetDelta_UnstTimeND();
+su2double TimeStep  = config->GetDelta_UnstTimeND();
+su2double FilterAmp = 1.0;
   
 for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
   
@@ -19691,10 +19692,10 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
         VelMag += Vel[iDim]*Vel[iDim];
       VelMag = sqrt(VelMag);
       
-      //su2double vonk = 0.4; //von Karman constant
-      //su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(node[iPoint]->GetTauWall()/node[iPoint]->GetDensity())));
-      su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
-      su2double TimeFilter = TimeStep / TimeStepC;
+      su2double vonk = 0.4; //von Karman constant
+      su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(node[iPoint]->GetTauWall()/node[iPoint]->GetDensity())));
+      //su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
+      su2double TimeFilter = FilterAmp * TimeStep / TimeStepC;
       
       /*--- Filter the LES velocity ---*/
       int Actual_Iter = (int)(config->GetExtIter() - config->GetUnst_RestartIter());
