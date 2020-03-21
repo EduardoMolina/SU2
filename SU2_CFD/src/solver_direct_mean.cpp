@@ -17046,22 +17046,7 @@ void CNSSolver::Friction_Forces(CGeometry *geometry, CConfig *config) {
             }
         
         }
-        
-        /*--- If Wall Model is used: Scale the viscous stress tensor ---*/
-        
-        if (wall_model){
-          su2double norm = 0.0;
-          for (iDim = 0 ; iDim < nDim; iDim++)
-            for (jDim = 0 ; jDim < nDim; jDim++)
-              norm += 0.5 * Tau[iDim][jDim] * Tau[iDim][jDim];
-          norm = sqrt(norm);
-          
-          su2double TauWall = node[iPoint]->GetTauWall();
-          for (iDim = 0 ; iDim < nDim; iDim++)
-            for (jDim = 0 ; jDim < nDim; jDim++)
-              Tau[iDim][jDim] = - Tau[iDim][jDim] * TauWall / norm;
-        }
-        
+                
         /*--- Project Tau in each surface element ---*/
         
         for (iDim = 0; iDim < nDim; iDim++) {
@@ -17106,6 +17091,22 @@ void CNSSolver::Friction_Forces(CGeometry *geometry, CConfig *config) {
             TauTangent[iDim] = TauElem[iDim] - TauNormal * UnitNormal[iDim];
             CSkinFriction[iMarker][iDim][iVertex] = TauTangent[iDim] / (0.5*RefDensity*RefVel2);
           }
+        }
+        
+        /*--- If Wall Model is used: ---*/
+        if (wall_model && node[iPoint]->GetTauWall_Flag()){
+          
+          TauWall = node[iPoint]->GetTauWall();
+          su2double *DirTanWM = node[iPoint]->GetDirTanWM();
+          
+          for (iDim = 0; iDim < nDim; iDim++)
+            TauElem[iDim] = TauWall * DirTanWM[iDim];
+
+          for (iDim = 0; iDim < nDim; iDim++) {
+            TauTangent[iDim] = TauElem[iDim];
+            CSkinFriction[iMarker][iDim][iVertex] = TauTangent[iDim] / (0.5*RefDensity*RefVel2);
+          }
+            
         }
         
         for (iDim = 0; iDim < nDim; iDim++) WallDist[iDim] = (Coord[iDim] - Coord_Normal[iDim]);
@@ -19077,6 +19078,7 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
 
           /*--- Store this value for the wall shear stress at the node.  ---*/
 
+          node[iPoint]->SetDirTanWM(VelTang);
           node[iPoint]->SetTauWall_Flag(true);
           node[iPoint]->SetTauWall(Tau_Wall);
           node[iPoint]->SetTemperature(T_Wall);
