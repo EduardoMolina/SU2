@@ -3838,14 +3838,14 @@ void CConfig::SetPostprocessing(unsigned short val_software, unsigned short val_
   /*--- Set the boolean Wall_Functions equal to true if there is a
    definition for the wall founctions: Check the Wall functions with Finite Volume code.---*/
   
-  bool FV_SteadyRANS = ((Unsteady_Simulation == STEADY) && (Kind_Solver == RANS));
+  bool FV_RANS = (Kind_Solver == RANS);
   bool FV_LES = ((Unsteady_Simulation != STEADY) && (Kind_Solver == NAVIER_STOKES) && (Kind_Turb_Model == NONE));
   Wall_Functions = false;
   Wall_Models = false;
   if (nMarker_WallFunctions > 0) {
     for (iMarker = 0; iMarker < nMarker_WallFunctions; iMarker++) {
       
-      if (FV_SteadyRANS){
+      if (FV_RANS){
         Wall_Functions = true;
         if ((Kind_WallFunctions[iMarker] == ADAPTIVE_WALL_FUNCTION) || (Kind_WallFunctions[iMarker] == NONEQUILIBRIUM_WALL_MODEL) ||
           (Kind_WallFunctions[iMarker] == EQUILIBRIUM_WALL_MODEL)  || (Kind_WallFunctions[iMarker] == LOGARITHMIC_WALL_MODEL))

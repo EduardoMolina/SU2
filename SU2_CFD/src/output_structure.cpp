@@ -12947,7 +12947,7 @@ void COutput::LoadLocalData_Flow(CConfig *config, CGeometry *geometry, CSolver *
           nVar_Par +=1;
           Variable_Names.push_back("RoeDissipationMean");
         }
-        if (wall_model){
+        if (wall_model || wall_function){
           nVar_Par +=1;
           Variable_Names.push_back("TauWallMean");
         }

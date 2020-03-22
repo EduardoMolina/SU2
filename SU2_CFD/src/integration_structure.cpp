@@ -670,10 +670,11 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
       
       if ((config->GetKind_Solver() == RANS) || (config->GetKind_Solver() == NAVIER_STOKES)){
         
-        if (config->GetWall_Models() || config->GetWall_Functions()){
+        if ((config->GetWall_Models() || config->GetWall_Functions()) && (solver->node[iPoint]->GetTauWall_Flag()) ){
           su2double *DirTanWM = solver->node[iPoint]->GetDirTanWM();
           su2double TauWall   = solver->node[iPoint]->GetTauWall();
           iVar_Avg += 1;
+                    
           solver->node[iPoint]->AddSolution_Avg(iVar_Avg, TauWall * DirTanWM[0]);
           
           iVar_Avg += 1;

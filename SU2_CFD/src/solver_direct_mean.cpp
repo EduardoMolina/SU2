@@ -18928,11 +18928,17 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
             VelNormal += Vel[iDim] * UnitNormal[iDim];
           for (iDim = 0; iDim < nDim; iDim++)
             VelTang[iDim] = Vel[iDim] - VelNormal*UnitNormal[iDim];
-          
+
+          /* Determine the magnitude of the tangential velocity as well
+           as its direction (unit vector). */
+
           VelTangMod = 0.0;
           for (iDim = 0; iDim < nDim; iDim++)
             VelTangMod += VelTang[iDim]*VelTang[iDim];
           VelTangMod = sqrt(VelTangMod);
+                    
+          su2double dirTan[3] = {0.0, 0.0, 0.0};
+          for(iDim = 0; iDim<nDim; iDim++) dirTan[iDim] = VelTang[iDim]/max(VelTangMod,1.e-25);
           
           /*--- Compute normal distance of the interior point from the wall ---*/
           
@@ -19078,7 +19084,7 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
 
           /*--- Store this value for the wall shear stress at the node.  ---*/
 
-          node[iPoint]->SetDirTanWM(VelTang);
+          node[iPoint]->SetDirTanWM(dirTan);
           node[iPoint]->SetTauWall_Flag(true);
           node[iPoint]->SetTauWall(Tau_Wall);
           node[iPoint]->SetTemperature(T_Wall);
