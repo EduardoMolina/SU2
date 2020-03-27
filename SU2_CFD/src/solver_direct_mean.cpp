@@ -8639,6 +8639,7 @@ void CEulerSolver::SetSynthetic_Turbulence(CGeometry *geometry, CSolver **solver
   
   // Maximum Velocity Fluctuation (just to check)
   su2double VelFluct_max = 0.0, Global_VelFluct_max=0.0;
+  su2double VelFluct_min = 99999.0, Global_VelFluct_min=99999.0;
   su2double Alpha_max = 0.0, Global_Alpha_max=0.0;
   su2double Alpha_min = 1.0, Global_Alpha_min=1.0;
   
@@ -8838,12 +8839,12 @@ void CEulerSolver::SetSynthetic_Turbulence(CGeometry *geometry, CSolver **solver
       // Add the perturbations to the auxliar array of primitive variables
       for (iDim = 0; iDim < nDim; iDim++){
         VSTG_VelFluct[ii*nDim+iDim] = VelTurb[iDim] * AlphaX[indx] / IntTimeScale;
-        //VelFluct_max = max(abs(VelTurb[iDim]), VelFluct_max);
-        VelFluct_max = max(abs(VSTG_VelFluct[ii*nDim+iDim]), VelFluct_max);
+        VelFluct_max = max(fabs(VSTG_VelFluct[ii*nDim+iDim]), VelFluct_max);
+        VelFluct_min = min(fabs(VSTG_VelFluct[ii*nDim+iDim]), VelFluct_min);
       }
       
-      Alpha_max = max(abs(AlphaX[indx]), Alpha_max);
-      Alpha_min = min(abs(AlphaX[indx]), Alpha_min);
+      Alpha_max = max(fabs(AlphaX[indx]), Alpha_max);
+      Alpha_min = min(fabs(AlphaX[indx]), Alpha_min);
       
       if (debug_cout)
         cout << rank << " " << Coord[0] << " " << Coord[1] << " " << Coord[2] <<  " " << VelTurb[0] << " " << VelTurb[1] << " " << VelTurb[2] << " " << AlphaX[indx] << endl;
@@ -8854,6 +8855,9 @@ void CEulerSolver::SetSynthetic_Turbulence(CGeometry *geometry, CSolver **solver
       // Add the perturbations to the auxliar array of primitive variables
       for (iDim = 0; iDim < nDim; iDim++){
         VSTG_VelFluct[ii*nDim+iDim] = VelTurb[iDim];
+        VelFluct_max = max(fabs(VSTG_VelFluct[ii*nDim+iDim]), VelFluct_max);
+        VelFluct_min = min(fabs(VSTG_VelFluct[ii*nDim+iDim]), VelFluct_min);
+
       }
     
     }
@@ -8869,17 +8873,27 @@ void CEulerSolver::SetSynthetic_Turbulence(CGeometry *geometry, CSolver **solver
 
 #ifdef HAVE_MPI
 
+  SU2_MPI::Allreduce(&VelFluct_max, &Global_VelFluct_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  SU2_MPI::Allreduce(&VelFluct_min, &Global_VelFluct_min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  
   if (config->GetKind_SyntheticTurbulence() == VOLUME_STG){
-    SU2_MPI::Allreduce(&VelFluct_max, &Global_VelFluct_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     SU2_MPI::Allreduce(&Alpha_max, &Global_Alpha_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     SU2_MPI::Allreduce(&Alpha_min, &Global_Alpha_min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 
     if (rank == MASTER_NODE){
       cout << "Maximum Source Term STG: " << Global_VelFluct_max << endl;
+      cout << "Minimum Source Term STG: " << Global_VelFluct_min << endl;
       cout << "Maximum Spatial Distribution STG: " << Global_Alpha_max << endl;
       cout << "Minimum Spatial Distribution STG: " << Global_Alpha_min << endl;
     }
   }
+  else if (config->GetKind_SyntheticTurbulence() == INLET_STG){
+    if (rank == MASTER_NODE){
+      cout << "Maximum synthetized velocity at the interface: " << Global_VelFluct_max << endl;
+      cout << "Minimum synthetized velocity at the interface: " << Global_VelFluct_min << endl;
+    }
+  }
+  
 #endif
   
 }
@@ -19019,7 +19033,7 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
             continue;
           }
           
-          while (abs(diff) > tol) {
+          while (fabs(diff) > tol) {
             
             /*--- Friction velocity and u+ ---*/
 
@@ -19608,7 +19622,7 @@ su2double T_Normal, P_Normal, mu_Normal;
 su2double *Coord, *Coord_Normal, UnitNormal[3], *Normal, Area;
 
 su2double TimeStep  = config->GetDelta_UnstTimeND();
-su2double FilterAmp = 1.0;
+su2double FilterAmp = 0.001;
   
 for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
   
@@ -19702,8 +19716,8 @@ for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
       
       su2double vonk = 0.4; //von Karman constant
       su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(node[iPoint]->GetTauWall()/node[iPoint]->GetDensity())));
-      //su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
-      su2double TimeFilter = FilterAmp * TimeStep / TimeStepC;
+      //su2double TimeFilter = FilterAmp * TimeStep / TimeStepC;
+      su2double TimeFilter = FilterAmp;
       
       /*--- Filter the LES velocity ---*/
       int Actual_Iter = (int)(config->GetExtIter() - config->GetUnst_RestartIter());

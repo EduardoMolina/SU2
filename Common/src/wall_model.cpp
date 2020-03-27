@@ -348,7 +348,7 @@ void CWallModel1DEQ::WallShearStressAndHeatFlux(const su2double tExchange,
     
     /* Define a norm
      */
-    if (abs(1.0 - tauWall/tauWall_prev) < tol && abs(1.0 - qWall/qWall_prev) < tol){
+    if (fabs(1.0 - tauWall/tauWall_prev) < tol && fabs(1.0 - qWall/qWall_prev) < tol){
       converged = true;
     }
   }
@@ -429,7 +429,7 @@ void CWallModelLogLaw::WallShearStressAndHeatFlux(const su2double tExchange,
     u_tau = u_tau0 - newton_step;
     
     /* Define a norm */
-    if (abs(1.0 - u_tau/u_tau0) < tol) converged = true;
+    if (fabs(1.0 - u_tau/u_tau0) < tol) converged = true;
   }
   
   tauWall = rho_wall * pow(u_tau,2.0);

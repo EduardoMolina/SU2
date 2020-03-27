@@ -738,7 +738,7 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
     su2double Vel[3]={0.0,0.0,0.0};
     
     su2double TimeStep   = config->GetDelta_UnstTimeND();
-    su2double FilterAmp  = 1.0;
+    su2double FilterAmp  = 0.001;
     
     su2double LocalFilterMax = 0.0,   LocalVelMagMax = 0.0;
     su2double LocalFilterMin = 999.0, LocalVelMagMin = 999.0;
@@ -793,8 +793,8 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
               
               su2double vonk = 0.4; //von Karman constant
               su2double TimeStepC  = WallDistMod / (vonk * max(1e-10, sqrt(solver->node[iPoint]->GetTauWall()/solver->node[iPoint]->GetDensity())));
-              //su2double TimeStepC  = geometry->node[Point_Normal]->GetMaxLength() / VelMag;
-              su2double TimeFilter = FilterAmp * TimeStep / TimeStepC;
+              //su2double TimeFilter = FilterAmp * TimeStep / TimeStepC;
+              su2double TimeFilter = FilterAmp;
               
               LocalFilterMax = max(LocalFilterMax,TimeFilter);
               LocalFilterMin = min(LocalFilterMin,TimeFilter);

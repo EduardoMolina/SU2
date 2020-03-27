@@ -913,7 +913,7 @@ void CTurbSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConfig *
       for (unsigned short iNeigh = 0; iNeigh < nNeigh; iNeigh++) {
         unsigned long jPoint  = geometry[MESH_0]->node[LocalPoints[ii]]->GetPoint(iNeigh);
         su2double* Coord_j = geometry[MESH_0]->node[jPoint]->GetCoord();
-        maxdelta = max(maxdelta, max( abs(Coord_i[1]-Coord_j[1]), abs(Coord_i[2]-Coord_j[2])) );
+        maxdelta = max(maxdelta, max( fabs(Coord_i[1]-Coord_j[1]), fabs(Coord_i[2]-Coord_j[2])) );
       }
       min_lengthNyquist = min(2.0 * min( max(maxdelta, 0.3*maxLength) + 0.1 * wallDistance, maxLength ), min_lengthNyquist);
       //min_lengthNyquist = min(2.0 * min( 0.3 * maxLength + 0.1 * wallDistance, maxLength ), min_lengthNyquist);
@@ -2947,7 +2947,7 @@ void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_containe
         counter = 0; diff = 1.0;
         U_Tau = sqrt(WallShearStress/Density_Wall);
         
-        while (abs(diff) > tol) {
+        while (fabs(diff) > tol) {
           
           /*--- Friction velocity and u+ ---*/          
 
@@ -3170,8 +3170,8 @@ void CTurbSASolver::SetDES_LengthScale(CSolver **solver, CGeometry *geometry, CC
             jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
             coord_j = geometry->node[jPoint]->GetCoord();
             for ( iDim = 0; iDim < nDim; iDim++){
-              deltaAux       = abs(coord_j[iDim] - coord_i[iDim]);
-              delta[iDim]     = max(delta[iDim], deltaAux);
+              deltaAux       = fabs(coord_j[iDim] - coord_i[iDim]);
+              delta[iDim]    = max(delta[iDim], deltaAux);
             }
             deltaDDES = geometry->node[iPoint]->GetMaxLength();
         }
