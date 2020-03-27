@@ -416,7 +416,7 @@ inline void CWALEModel::ComputeGradEddyViscosity_3D(const su2double rho,
 inline CVremanModel::CVremanModel(void) : CSGSModel() {
   
   /* const_Vreman = 2.5*Cs*Cs where Cs is the Smagorinsky constant */
-  const_Vreman = 0.07;
+  const_Vreman = 0.1;
 }
 
 inline CVremanModel::~CVremanModel(void){}
