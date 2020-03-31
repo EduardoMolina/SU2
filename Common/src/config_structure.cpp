@@ -560,6 +560,7 @@ void CConfig::SetPointersNull(void) {
   default_sineload_coeff     = NULL;
   default_nacelle_location   = NULL;
   default_stg_val            = NULL;
+  default_sponge_val         = NULL;
   
   default_cp_polycoeffs = NULL;
   default_mu_polycoeffs = NULL;
@@ -670,6 +671,7 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   default_sineload_coeff     = new su2double[3];
   default_nacelle_location   = new su2double[5];
   default_stg_val            = new su2double[6];
+  default_sponge_val         = new su2double[2];
   
   /*--- All temperature polynomial fits for the fluid models currently
    assume a quartic form (5 coefficients). For example,
@@ -2401,6 +2403,12 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Specify Hybrid RANS/LES model */
   addEnumOption("CONVECTIVE_FLUX", Kind_ConvectiveFlux, ConvectiveFlux_Map, CENTRAL_FLUX);
 
+  /* DESCRIPTION: Use a sponge outflow in the x-direction (for WMLES) */
+  addBoolOption("SPONGE_OUTFLOW", SpongeOutflow, false);
+
+  /* DESCRIPTION: Sponge outflow coefficient (xmin, sigma) where wgt = tanh(sigma * (x - xmin) / lref) */
+  default_sponge_val[0] = 0.0; default_sponge_val[1] = 0.0;
+  addDoubleArrayOption("SPONGE_OUTFLOW_COEFF", 2, SpongeOutflow_Values, default_sponge_val);
 
   /* END_CONFIG_OPTIONS */
 
@@ -7372,6 +7380,7 @@ CConfig::~CConfig(void) {
   if (default_sineload_coeff!= NULL) delete [] default_sineload_coeff;
   if (default_nacelle_location    != NULL) delete [] default_nacelle_location;
   if (default_stg_val       != NULL) delete [] default_stg_val;
+  if (default_sponge_val    != NULL) delete [] default_sponge_val;
   
   if (default_cp_polycoeffs != NULL) delete [] default_cp_polycoeffs;
   if (default_mu_polycoeffs != NULL) delete [] default_mu_polycoeffs;

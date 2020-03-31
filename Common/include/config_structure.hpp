@@ -1121,6 +1121,11 @@ private:
   bool      Using_MassFlowCorrection;
   su2double MassFlowDerivative;
   
+  bool      SpongeOutflow;
+  su2double *default_sponge_val;  /*!< \brief Default values of the sponge outflow  for the COption class. */
+  su2double *SpongeOutflow_Values;/*!< \brief Values of the sponge outflow */
+
+  
   /*--- all_options is a map containing all of the options. This is used during config file parsing
    to track the options which have not been set (so the default values can be used). Without this map
    there would be no list of all the config file options. ---*/
@@ -9234,6 +9239,10 @@ public:
   void SetMassFlowDerivative(su2double val_massflow_derivative);
   
   su2double GetMassFlowDerivative(void);
+
+  bool GetSpongeOutflow(void);
+  
+  su2double *GetSpongeOutflow_Values(void);
 
 };
 

@@ -2113,3 +2113,6 @@ inline su2double CConfig::GetMassFlowDerivative(void) { return MassFlowDerivativ
 
 inline bool CConfig::GetUsing_MassFlowCorrection(void) { return Using_MassFlowCorrection; }
 
+inline bool CConfig::GetSpongeOutflow(void) { return SpongeOutflow; }
+
+inline su2double *CConfig::GetSpongeOutflow_Values(void) { return SpongeOutflow_Values; }

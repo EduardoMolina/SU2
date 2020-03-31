@@ -607,6 +607,8 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
   su2double *Aux_Frict_x = NULL, *Aux_Frict_y = NULL, *Aux_Frict_z = NULL;
   unsigned long iMarker, iVertex;
   unsigned long Actual_Iter = (config->GetExtIter() - config->GetUnst_RestartIter());
+  bool sponge_outflow = config->GetSpongeOutflow();
+  su2double *sponge_outflow_coeff = config->GetSpongeOutflow_Values();
   
   /*--- Copy from COutput::LoadLocalData_Flow for computing mean skin friction values
    *
@@ -729,7 +731,8 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
       
     }
   }
-  
+
+  /*--- Preprocessing for WMLES using the 1st point off the wall ---*/
   if (config->GetWMLES_1stGridPoint()){
     
     unsigned short nDim = geometry->GetnDim();
@@ -838,6 +841,46 @@ void CIntegration::SetDualTime_Solver(CGeometry *geometry, CSolver *solver, CCon
       cout << "\nMaximum Time Filter: " << GlobalFilterMax << " Maximum Filtered Wall Model Velocity: " << GlobalVelMagMax << endl;
       cout <<   "Minimum Time Filter: " << GlobalFilterMin << " Minimum Filtered Wall Model Velocity: " << GlobalVelMagMin << endl;
     }
+  }
+  
+  /*--- Preprocessing for sponge outflow ---*/
+  if (sponge_outflow && calculate_average && (Actual_Iter > 0)){
+    
+    su2double Lx_min    = sponge_outflow_coeff[0];
+    su2double wgt_coeff = sponge_outflow_coeff[1];
+    su2double Avg_Iter = (config->GetExtIter() - config->GetUnst_RestartIter()) + 2.;
+    const unsigned short nVar = solver->GetnVar();
+    
+    su2double *Solution_Sponge, *Solution_Mean, *Solution_i;
+    
+    Solution_Sponge = new su2double [nVar];
+    Solution_Mean   = new su2double [nVar];
+    
+    for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
+      
+      su2double *Coord_i = geometry->node[iPoint]->GetCoord();
+      
+      if (Coord_i[0] > Lx_min){
+        su2double wgt = tanh(wgt_coeff * (Coord_i[0] - Lx_min)/config->GetRefLength());
+        
+        Solution_Mean[0] = solver->node[iPoint]->GetSolution_Avg(0) / Avg_Iter;
+        
+        for (iVar = 1; iVar < nVar; iVar++) {
+          Solution_Mean[iVar] = (solver->node[iPoint]->GetSolution_Avg(iVar) / Avg_Iter) * Solution_Mean[0];
+        }
+        
+        Solution_i = solver->node[iPoint]->GetSolution();
+        
+        for (iVar = 0; iVar < nVar; iVar++) {
+          Solution_Sponge[iVar] = (1. - wgt) * Solution_i[iVar] + wgt * Solution_Mean[iVar];
+        }
+        
+        solver->node[iPoint]->SetSolution(Solution_Sponge);
+      }
+    }                                               
+  
+    delete [] Solution_Sponge;
+    delete [] Solution_Mean;
   }
   
   for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
