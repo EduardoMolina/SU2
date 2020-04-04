@@ -16367,7 +16367,8 @@ CNSSolver::~CNSSolver(void) {
     delete [] Buffet_Sensor;
   }
   
-  if( SGSModel ) delete SGSModel;
+  if( SGSModel  != NULL) delete SGSModel;
+  if( WallModel != NULL) delete WallModel;
   
 }
 void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config, unsigned short iMesh, unsigned short iRKStep, unsigned short RunTime_EqSystem, bool Output) {
