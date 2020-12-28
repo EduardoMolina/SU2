@@ -1254,3 +1254,25 @@ void CDriver::SetInlet_Angle(unsigned short iMarker, passivedouble alpha){
   }
 
 }
+
+void CFluidDriver::SetVertexActuatorDiskForce(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_ActDiskForce_passive){
+
+  su2double val_ActDiskForce = val_ActDiskForce_passive;
+
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->SetActDisk_Forces(iMarker, iVertex, iDim, val_ActDiskForce);
+
+}
+
+passivedouble CFluidDriver::GetVertexPrimitiveVariable(unsigned short iMarker, unsigned long iVertex, unsigned short iVar){
+  
+  unsigned long iPoint   = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+  bool NotHalo           = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetDomain(iPoint);
+  su2double PrimitiveVar = 0.0;
+  
+  if (NotHalo)
+    PrimitiveVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetPrimitive(iPoint, iVar);
+  
+  return SU2_TYPE::GetValue(PrimitiveVar);
+}
+
+

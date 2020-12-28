@@ -151,6 +151,12 @@ class CFVMFlowSolverBase : public CSolver {
   su2double** CPressureTarget = nullptr;   /*!< \brief Target Pressure coefficient for each boundary and vertex. */
   su2double** YPlus = nullptr;             /*!< \brief Yplus for each boundary and vertex. */
 
+  su2double
+  **ActDisk_Fa = nullptr,        /*!< \brief Value of the actuator disk Axial Force per Unit Area. */
+  **ActDisk_Fx = nullptr,        /*!< \brief Value of the actuator disk X component of the radial and tangential forces per Unit Area resultant. */
+  **ActDisk_Fy = nullptr,        /*!< \brief Value of the actuator disk Y component of the radial and tangential forces per Unit Area resultant. */
+  **ActDisk_Fz = nullptr;        /*!< \brief Value of the actuator disk Z component of the radial and tangential forces per Unit Area resultant. */
+
   bool space_centered;       /*!< \brief True if space centered scheeme used. */
   bool euler_implicit;       /*!< \brief True if euler implicit scheme used. */
   bool least_squares;        /*!< \brief True if computing gradients by least squares. */
@@ -1602,5 +1608,36 @@ class CFVMFlowSolverBase : public CSolver {
    */
   inline su2double GetYPlus(unsigned short val_marker, unsigned long val_vertex) const final {
     return YPlus[val_marker][val_vertex];
+  }
+  
+  /*!
+   * \brief Set a component of the unit vector representing the flow direction at an inlet boundary.
+   * \param[in] val_marker - Surface marker where the flow direction is set.
+   * \param[in] val_vertex - Vertex of the marker <i>val_marker</i> where the flow direction is set.
+   * \param[in] val_dim - The component of the flow direction unit vector to be set
+   * \param[in] val_flowdir - Component of a unit vector representing the flow direction.
+   */
+  inline void SetActDisk_Forces(unsigned short val_marker, unsigned long val_vertex, unsigned short val_dim,
+                               su2double val_actdiskforce) final {
+    /*--- Since this call can be accessed indirectly using python, do some error
+     * checking to prevent segmentation faults ---*/
+    if (val_marker >= nMarker)
+      SU2_MPI::Error("Out-of-bounds marker index used on actuator disk.", CURRENT_FUNCTION);
+    else if (Inlet_FlowDir == nullptr || Inlet_FlowDir[val_marker] == nullptr)
+      SU2_MPI::Error("Tried to set custom inlet BC on an invalid marker.", CURRENT_FUNCTION);
+    else if (val_vertex >= nVertex[val_marker])
+      SU2_MPI::Error("Out-of-bounds vertex index used on actuator disk.", CURRENT_FUNCTION);
+    else{
+      if (val_dim == 0)
+        ActDisk_Fa[val_marker][val_vertex] = val_actdiskforce;
+      else if (val_dim == 1)
+        ActDisk_Fx[val_marker][val_vertex] = val_actdiskforce;
+      else if (val_dim == 2)
+        ActDisk_Fy[val_marker][val_vertex] = val_actdiskforce;
+      else if (val_dim == 3)
+        ActDisk_Fz[val_marker][val_vertex] = val_actdiskforce;
+      else
+        SU2_MPI::Error("Out-of-bounds dim index used on actuator disk forces.", CURRENT_FUNCTION);
+    }
   }
 };

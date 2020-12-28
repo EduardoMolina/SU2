@@ -72,11 +72,6 @@ protected:
   su2activematrix
   ActDisk_C,         /*!< \brief Value of the actuator disk Center. */
   ActDisk_Axis;      /*!< \brief Value of the actuator disk Axis. */
-  su2double
-  **ActDisk_Fa,        /*!< \brief Value of the actuator disk Axial Force per Unit Area. */
-  **ActDisk_Fx,        /*!< \brief Value of the actuator disk X component of the radial and tangential forces per Unit Area resultant. */
-  **ActDisk_Fy,        /*!< \brief Value of the actuator disk Y component of the radial and tangential forces per Unit Area resultant. */
-  **ActDisk_Fz;        /*!< \brief Value of the actuator disk Z component of the radial and tangential forces per Unit Area resultant. */
 
   su2double
   Total_CL_Prev = 0.0,        /*!< \brief Total lift coefficient for all the boundaries (fixed lift mode). */

@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * \file driver_structure.hpp
  * \brief Headers of the main subroutines for driving single or multi-zone problems.
  *        The subroutines and functions are in the <i>driver_structure.cpp</i> file.
@@ -1006,7 +1006,25 @@ public:
    * \param[in] val_FlowDir - Component of a unit vector representing the flow direction
    */
   void SetVertexFlowDir(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_FlowDir);
+  
+  /*!
+    * \brief Set the flow direction of a vertex on a specified inlet marker.
+    * \param[in] iMarker - Marker identifier.
+    * \param[in] iVertex - Vertex identifier.
+    * \param[in] iDim - Index of the flow direction unit vector
+    * \param[in] val_FlowDir - Component of a unit vector representing the flow direction
+    */
+   void SetVertexActuatorDiskForce(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_ActDiskForce_passive);
 
+  /*!
+   * \brief Get the x component of the force at a vertex on a specified marker.
+   * \param[in] iMarker - Marker identifier.
+   * \param[in] iVertex - Vertex identifier.
+   * \param[in] iVar - Variable identifier.
+   * \return x component of the force at the vertex.
+   */
+  passivedouble GetVertexPrimitiveVariable(unsigned short iMarker, unsigned long iVertex, unsigned short iVar);
+  
   /*!
    * \brief Set a turbulence variable on a specified inlet marker.
    * \param[in] iMarker - Marker identifier.

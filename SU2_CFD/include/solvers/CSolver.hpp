@@ -3048,6 +3048,18 @@ public:
 
   /*!
    * \brief A virtual member
+   * \param[in] val_marker - Surface marker where the flow direction is set.
+   * \param[in] val_vertex - Vertex of the marker <i>val_marker</i> where the flow direction is set.
+   * \param[in] val_dim - The component of the flow direction unit vector to be set
+   * \param[in] val_actdiskforce - Component of a unit vector representing the flow direction.
+   */
+  inline virtual void SetActDisk_Forces(unsigned short val_marker,
+                                       unsigned long val_vertex,
+                                       unsigned short val_dim,
+                                       su2double val_actdiskforce) { }
+  
+  /*!
+   * \brief A virtual member
    * \param[in] iMarker - Marker identifier.
    * \param[in] iVertex - Vertex identifier.
    * \param[in] iDim - Index of the turbulence variable (i.e. k is 0 in SST)
