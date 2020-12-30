@@ -293,6 +293,21 @@ unsigned long CDriver::GetnTimeIter() {
     return config_container[ZONE_0]->GetnTime_Iter();
 }
 
+unsigned long CDriver::GetnInner_Iter(){
+
+    return config_container[ZONE_0]->GetnInner_Iter();
+}
+
+passivedouble CDriver::GetActDiskInflowVelocity(unsigned short iMarker){
+  
+  su2double MassFlow = config_container[ZONE_0]->GetActDisk_MassFlow(iMarker);
+  su2double Density  = config_container[ZONE_0]->GetDensity_FreeStreamND();
+  su2double Area     = config_container[ZONE_0]->GetActDisk_Area(iMarker);
+  su2double InflowVelocity = MassFlow / (Density * Area);
+  
+  return SU2_TYPE::GetValue(InflowVelocity);
+}
+
 unsigned long CDriver::GetTime_Iter() const{
 
   return TimeIter;

@@ -452,6 +452,12 @@ public:
   unsigned long GetnTimeIter();
 
   /*!
+   * \brief Get the number of external steady state iterations.
+   * \return Number of external steady state iterations.
+   */
+  unsigned long GetnInner_Iter();
+
+  /*!
    * \brief Get the current external iteration.
    * \return Current external iteration.
    */
@@ -462,6 +468,8 @@ public:
    * \return Unsteady time step.
    */
   passivedouble GetUnsteady_TimeStep();
+  
+  passivedouble GetActDiskInflowVelocity(unsigned short iMarker);
 
   /*!
    * \brief Get the global index of a vertex on a specified marker.
