@@ -1270,12 +1270,17 @@ void CDriver::SetInlet_Angle(unsigned short iMarker, passivedouble alpha){
 
 }
 
-void CFluidDriver::SetVertexActuatorDiskForce(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_ActDiskForce_passive){
+void CDriver::SetVertexActuatorDiskForce(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_ActDiskForce_passive){
 
   su2double val_ActDiskForce = val_ActDiskForce_passive;
 
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->SetActDisk_Forces(iMarker, iVertex, iDim, val_ActDiskForce);
 
+}
+
+void CDriver::ReadActuatordDiskFile(){
+  
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->ReadActDisk_BEMT(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], 0, false);
 }
 
 passivedouble CFluidDriver::GetVertexPrimitiveVariable(unsigned short iMarker, unsigned long iVertex, unsigned short iVar){

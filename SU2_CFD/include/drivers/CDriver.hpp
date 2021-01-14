@@ -865,7 +865,19 @@ public:
     }
     return nVar;
   }
+  
+  /*!
+    * \brief Set the flow direction of a vertex on a specified inlet marker.
+    * \param[in] iMarker - Marker identifier.
+    * \param[in] iVertex - Vertex identifier.
+    * \param[in] iDim - Index of the flow direction unit vector
+    * \param[in] val_FlowDir - Component of a unit vector representing the flow direction
+    */
+   void SetVertexActuatorDiskForce(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_ActDiskForce_passive);
 
+   
+   void ReadActuatordDiskFile();
+  
   /*!
    * \brief Set the solution of all solvers (adjoint or primal) in a zone.
    * \param[in] iZone - Index of the zone.
@@ -1014,15 +1026,6 @@ public:
    * \param[in] val_FlowDir - Component of a unit vector representing the flow direction
    */
   void SetVertexFlowDir(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_FlowDir);
-  
-  /*!
-    * \brief Set the flow direction of a vertex on a specified inlet marker.
-    * \param[in] iMarker - Marker identifier.
-    * \param[in] iVertex - Vertex identifier.
-    * \param[in] iDim - Index of the flow direction unit vector
-    * \param[in] val_FlowDir - Component of a unit vector representing the flow direction
-    */
-   void SetVertexActuatorDiskForce(unsigned short iMarker, unsigned long iVertex, unsigned short iDim, passivedouble val_ActDiskForce_passive);
 
   /*!
    * \brief Get the x component of the force at a vertex on a specified marker.

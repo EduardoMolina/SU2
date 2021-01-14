@@ -389,6 +389,11 @@ void CTurbSolver::BC_Giles(CGeometry *geometry, CSolver **solver_container, CNum
   }
 }
 
+void CTurbSolver::ReadActDisk_BEMT(CGeometry *geometry, CSolver **solver_container,
+                      CConfig *config, unsigned short iMesh, bool Output){
+  
+}
+
 void CTurbSolver::BC_Periodic(CGeometry *geometry, CSolver **solver_container,
                                   CNumerics *numerics, CConfig *config) {
 

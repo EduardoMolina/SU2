@@ -556,6 +556,17 @@ public:
                                bool val_inlet_surface);
 
   /*!
+   * \brief Update the AoA and freestream velocity at the farfield.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] config - Definition of the particular problem.
+   * \param[in] iMesh - current mesh level for the multigrid.
+   * \param[in] Output - boolean to determine whether to print output.
+   */
+  void ReadActDisk_BEMT(CGeometry *geometry, CSolver **solver_container,
+                        CConfig *config, unsigned short iMesh, bool Output) final;
+  
+  /*!
    * \brief Impose the interface boundary condition using the residual.
    * \param[in] geometry - Geometrical definition of the problem.
    * \param[in] solver_container - Container vector with all the solutions.

@@ -5093,6 +5093,13 @@ void CEulerSolver::SetActDisk_BCThrust(CGeometry *geometry, CSolver **solver_con
 
 }
 
+void CEulerSolver::ReadActDisk_BEMT(CGeometry *geometry, CSolver **solver_container,
+                      CConfig *config, unsigned short iMesh, bool Output){
+  
+  ReadActDisk_InputFile(geometry, solver_container, config, iMesh, Output);
+  
+}
+
 void CEulerSolver::ReadActDisk_InputFile(CGeometry *geometry, CSolver **solver_container,
                                        CConfig *config, unsigned short iMesh, bool Output) {
   /*--- Input file provides force coefficients distributions along disk radius. Initialization
