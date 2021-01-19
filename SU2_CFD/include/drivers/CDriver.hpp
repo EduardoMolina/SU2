@@ -469,7 +469,11 @@ public:
    */
   passivedouble GetUnsteady_TimeStep();
   
-  passivedouble GetActDiskInflowVelocity(unsigned short iMarker);
+  passivedouble GetActDiskInflowVelocity(string Marker_Tag);
+  
+  passivedouble GetActDiskInflowDensity(string Marker_Tag);
+  
+  passivedouble GetActDiskInflowViscosity(string Marker_Tag);
 
   /*!
    * \brief Get the global index of a vertex on a specified marker.

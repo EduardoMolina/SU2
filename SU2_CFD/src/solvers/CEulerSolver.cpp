@@ -4253,8 +4253,8 @@ void CEulerSolver::GetPower_Properties(CGeometry *geometry, CConfig *config, uns
           MassFlow =  config->GetActDiskInlet_MassFlow(Inlet_TagBound);
         }
 
-        Mach        = Inlet_Mach_Total[iMarker_Inlet];
-        Area              = Inlet_Area_Total[iMarker_Inlet];
+        Mach = Inlet_Mach_Total[iMarker_Inlet];
+        Area = Inlet_Area_Total[iMarker_Inlet];
 
         if (Engine) {
           config->SetEngine_Mach(iMarker_Inlet, Mach);
@@ -9108,7 +9108,7 @@ void CEulerSolver::BC_ActDisk_Inlet(CGeometry *geometry, CSolver **solver_contai
 
   unsigned short Kind_ActDisk = config->GetKind_ActDisk();
 
-  if(Kind_ActDisk == VARIABLE_LOAD){
+  if((Kind_ActDisk == VARIABLE_LOAD) || (Kind_ActDisk == EXTERNAL_BEMT)){
     BC_ActDisk_VariableLoad(geometry, solver_container, conv_numerics, visc_numerics, config, val_marker, true);
   }
   else{
@@ -9122,7 +9122,7 @@ void CEulerSolver::BC_ActDisk_Outlet(CGeometry *geometry, CSolver **solver_conta
 
   unsigned short Kind_ActDisk = config->GetKind_ActDisk();
 
-  if(Kind_ActDisk == VARIABLE_LOAD){
+  if((Kind_ActDisk == VARIABLE_LOAD) || (Kind_ActDisk == EXTERNAL_BEMT)){
     BC_ActDisk_VariableLoad(geometry, solver_container, conv_numerics, visc_numerics, config, val_marker, false);
   }
   else{

@@ -298,15 +298,37 @@ unsigned long CDriver::GetnInner_Iter(){
     return config_container[ZONE_0]->GetnInner_Iter();
 }
 
-passivedouble CDriver::GetActDiskInflowVelocity(unsigned short iMarker){
+passivedouble CDriver::GetActDiskInflowVelocity(string Marker_Tag){
   
-  su2double MassFlow = config_container[ZONE_0]->GetActDisk_MassFlow(iMarker);
-  su2double Density  = config_container[ZONE_0]->GetDensity_FreeStreamND();
-  su2double Area     = config_container[ZONE_0]->GetActDisk_Area(iMarker);
+  su2double MassFlow = config_container[ZONE_0]->GetActDisk_MassFlow(Marker_Tag);
+  su2double Density  = GetActDiskInflowDensity(Marker_Tag);
+  
+  su2double Area     = config_container[ZONE_0]->GetActDisk_Area(Marker_Tag);
   su2double InflowVelocity = MassFlow / (Density * Area);
-  
   return SU2_TYPE::GetValue(InflowVelocity);
 }
+
+passivedouble CDriver::GetActDiskInflowViscosity(string Marker_Tag){
+  
+  su2double Temperature   = config_container[ZONE_0]->GetActDiskInlet_Temperature(Marker_Tag);
+  su2double Pressure      = config_container[ZONE_0]->GetActDiskInlet_Pressure(Marker_Tag);
+  CFluidModel *FluidModel = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetFluidModel();
+  FluidModel->SetTDState_PT(Pressure, Temperature);
+  su2double Viscosity = FluidModel->GetLaminarViscosity();
+  return SU2_TYPE::GetValue(Viscosity);
+}
+
+passivedouble CDriver::GetActDiskInflowDensity(string Marker_Tag){
+  
+  su2double Temperature   = config_container[ZONE_0]->GetActDiskInlet_Temperature(Marker_Tag);
+  su2double Pressure      = config_container[ZONE_0]->GetActDiskInlet_Pressure(Marker_Tag);
+  CFluidModel *FluidModel = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetFluidModel();
+  FluidModel->SetTDState_PT(Pressure, Temperature);
+  su2double Density = FluidModel->GetDensity();
+  //
+  return SU2_TYPE::GetValue(Density);
+}
+
 
 unsigned long CDriver::GetTime_Iter() const{
 

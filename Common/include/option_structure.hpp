@@ -1435,7 +1435,8 @@ enum ACTDISK_TYPE {
   DRAG_MINUS_THRUST = 4,  /*!< \brief User specifies the D-T. */
   MASSFLOW = 5,           /*!< \brief User specifies the massflow. */
   POWER = 6,              /*!< \brief User specifies the power. */
-  VARIABLE_LOAD = 7       /*!< \brief User specifies the load distribution. */
+  VARIABLE_LOAD = 7,       /*!< \brief User specifies the load distribution. */
+  EXTERNAL_BEMT = 8       /*!< \brief External python BEMT code. */
 };
 static const MapType<string, ACTDISK_TYPE> ActDisk_Map = {
   MakePair("VARIABLES_JUMP", VARIABLES_JUMP)
@@ -1445,6 +1446,7 @@ static const MapType<string, ACTDISK_TYPE> ActDisk_Map = {
   MakePair("MASSFLOW", MASSFLOW)
   MakePair("POWER", POWER)
   MakePair("VARIABLE_LOAD", VARIABLE_LOAD)
+  MakePair("EXTERNAL_BEMT", EXTERNAL_BEMT)
 };
 
 /*!

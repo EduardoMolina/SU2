@@ -7045,7 +7045,7 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
   }
 
   if (nMarker_ActDiskOutlet != 0) {
-    if (GetKind_ActDisk() == VARIABLE_LOAD) {
+    if ((GetKind_ActDisk() == VARIABLE_LOAD) || (GetKind_ActDisk() == EXTERNAL_BEMT)) {
       cout << endl << "Actuator disk with variable load." << endl;
       cout << "Actuator disk data read from file: " << GetActDisk_FileName() << endl;
     }
