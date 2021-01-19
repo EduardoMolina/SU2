@@ -4534,7 +4534,7 @@ void CEulerSolver::GetPower_Properties(CGeometry *geometry, CConfig *config, uns
             else if (config->GetSystemMeasurements() == US) cout << setprecision(1) << ". Gross Thrust (lbf): ";
             cout << -GrossThrust * Ref  << "." << endl;
 
-            if (config->GetSystemMeasurements() == SI) cout << setprecision(1) << "Open surfaces Thurst (N): ";
+            if (config->GetSystemMeasurements() == SI) cout << setprecision(1) << "Open surfaces Thrust (N): ";
             else if (config->GetSystemMeasurements() == US) cout  << setprecision(1) << "Open surfaces Thrust (lbf): ";
             cout<< setprecision(1) << Force * Ref << ". Open surfaces CT: " << setprecision(5) << -Force / Factor << "." << endl;
 
