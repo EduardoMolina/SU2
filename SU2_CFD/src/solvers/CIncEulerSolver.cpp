@@ -2,7 +2,7 @@
  * \file CIncEulerSolver.cpp
  * \brief Main subroutines for solving incompressible flow (Euler, Navier-Stokes, etc.).
  * \author F. Palacios, T. Economon
- * \version 7.0.8 "Blackbird"
+ * \version 7.1.0 "Blackbird"
  *
  * SU2 Project Website: https://su2code.github.io
  *
@@ -2189,27 +2189,6 @@ void CIncEulerSolver::ImplicitEuler_Iteration(CGeometry *geometry, CSolver **sol
 
 }
 
-void CIncEulerSolver::Evaluate_ObjFunc(CConfig *config) {
-
-  Total_ComboObj = EvaluateCommonObjFunc(*config);
-
-  /*--- The following are not per-surface, and so to avoid that they are
-   double-counted when multiple surfaces are specified, they have been
-   placed outside of the loop above. In addition, multi-objective mode is
-   also disabled for these objective functions (error thrown at start). ---*/
-
-  const auto Weight_ObjFunc = config->GetWeight_ObjFunc(0);
-  const auto Kind_ObjFunc = config->GetKind_ObjFunc(0);
-
-  switch(Kind_ObjFunc) {
-    case SURFACE_PRESSURE_DROP:
-      Total_ComboObj+=Weight_ObjFunc*config->GetSurface_PressureDrop(0);
-      break;
-    default:
-      break;
-  }
-}
-
 void CIncEulerSolver::SetBeta_Parameter(CGeometry *geometry, CSolver **solver_container,
                                    CConfig *config, unsigned short iMesh) {
 
@@ -3661,7 +3640,6 @@ void CIncEulerSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConf
     /*--- Recompute the edges and  dual mesh control volumes in the
      domain and on the boundaries. ---*/
 
-    geometry[MESH_0]->SetCoord_CG();
     geometry[MESH_0]->SetControlVolume(config, UPDATE);
     geometry[MESH_0]->SetBoundControlVolume(config, UPDATE);
     geometry[MESH_0]->SetMaxLength(config);
