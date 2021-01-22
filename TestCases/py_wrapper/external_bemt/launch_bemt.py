@@ -68,7 +68,7 @@ def ReadActuatorDiskFile(filename):
 
   for line in lines:
     if "MARKER_ACTDISK=" in line:
-      up_marker.append(line.strip().split()[1].split(',')[0])
+      up_marker.append(line.strip().split()[1])
       down_marker.append(line.strip().split()[2])
     if "CENTER=" in line:
       aux = line.strip().split()[1:]
@@ -228,8 +228,8 @@ def main():
 
       R_, dCT_, dCP_ = bemt.force_per_unit_area()
         
-      Fa = dCT_*(2.*RhoActDisk*pow(VelActDisk,2))/(pow(ActDiskDict["J"][i],2)*np.pi*R_)
-      Ft = dCP_*(2*RhoActDisk*pow(VelActDisk,2))/((ActDiskDict["J"][i]*np.pi*R_) * (ActDiskDict["J"][i]*np.pi*R_))
+      Fa = dCT_*(2.*RhoActDisk*pow(VelActDisk,2))/(pow(J_bemt,2)*np.pi*R_)
+      Ft = dCP_*(2*RhoActDisk*pow(VelActDisk,2))/((J_bemt*np.pi*R_) * (J_bemt*np.pi*R_))
 
       # R_ = np.linspace(0.2031, 0.9795, 37)
       # Fa = np.ones_like(R_)
