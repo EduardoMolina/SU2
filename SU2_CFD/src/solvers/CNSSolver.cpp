@@ -1020,16 +1020,18 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
         continue;
       }
       
-      bool converged = true;
-      while (abs(diff) > tol) {
-         
+      bool converged = false;
+      while (converged == false) {
+        
+        const su2double U_Tau0 = U_Tau;
+        
         /*--- Friction velocity and u+ ---*/
         
-        su2double U_Plus = VelTangMod/U_Tau;
+        su2double U_Plus = VelTangMod/U_Tau0;
 
         /*--- Gamma, Beta, Q, and Phi, defined by Nichols & Nelson (2004) ---*/
         
-        su2double Gam  = Recovery*U_Tau*U_Tau/(2.0*Cp*T_Wall);
+        su2double Gam  = Recovery*U_Tau0*U_Tau0/(2.0*Cp*T_Wall);
         su2double Beta = 0.0; // For adiabatic flows only
         su2double Q    = sqrt(Beta*Beta + 4.0*Gam);
         su2double Phi  = asin(-1.0*Beta/Q);
@@ -1047,20 +1049,23 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
 
          /* --- Define function for Newton method to zero --- */
          
-         diff = (Density_Wall * U_Tau * WallDistMod / Lam_Visc_Wall) - Y_Plus;
+         diff = (Density_Wall * U_Tau0 * WallDistMod / Lam_Visc_Wall) - Y_Plus;
 
          /* --- Gradient of function defined above --- */
-         su2double grad_diff = Density_Wall * WallDistMod / Lam_Visc_Wall + VelTangMod / (U_Tau * U_Tau) +
-                   kappa /(U_Tau * sqrt(Gam)) * asin(U_Plus * sqrt(Gam)) * Y_Plus_White -
-                   exp(-1.0 * B * kappa) * (0.5 * pow(VelTangMod * kappa / U_Tau, 3) +
-                   pow(VelTangMod * kappa / U_Tau, 2) + VelTangMod * kappa / U_Tau) / U_Tau;
+         su2double grad_diff = Density_Wall * WallDistMod / Lam_Visc_Wall + VelTangMod / (U_Tau0 * U_Tau0) +
+                   kappa /(U_Tau0 * sqrt(Gam)) * asin(U_Plus * sqrt(Gam)) * Y_Plus_White -
+                   exp(-1.0 * B * kappa) * (0.5 * pow(VelTangMod * kappa / U_Tau0, 3) +
+                   pow(VelTangMod * kappa / U_Tau0, 2) + VelTangMod * kappa / U_Tau0) / U_Tau0;
 
          /* --- Newton Step --- */
-         U_Tau = U_Tau - diff / grad_diff;
+         U_Tau = U_Tau0 - diff / grad_diff;
 
+        /* Define a norm
+         */
+        if (fabs(1.0 - U_Tau/U_Tau0) < tol) converged = true;
+        
          counter++;
-         if (counter == max_iter) {
-           converged = false;
+         if (counter > max_iter) {
            nodes->SetTauWall(iPoint,-1.0);
            break;
          }
@@ -1148,7 +1153,7 @@ void CNSSolver::SetEddyViscFirstPoint(CGeometry *geometry, CSolver **solver_cont
               /*--- Verify the wall function flag on the node. If false,
                jump to the next iPoint.---*/
 
-              //if (!nodes->GetTauWall_Flag(iPoint)) continue;
+              if (nodes->GetTauWall(iPoint) < 0.0) continue;
 
               /*--- Get the velocity, pressure, and temperature at the nearest
                (normal) interior point. ---*/

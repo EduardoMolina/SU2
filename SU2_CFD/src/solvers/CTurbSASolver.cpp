@@ -1583,7 +1583,7 @@ void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_containe
   const su2double Cp = (Gamma / Gamma_Minus_One) * Gas_Constant;
 
   constexpr unsigned short max_iter = 100;
-  const su2double tol = 1e-10;
+  const su2double tol = 1e-3;
 
   /*--- Compute the recovery factor ---*/
   // su2double-check: laminar or turbulent Pr for this?
@@ -1689,9 +1689,9 @@ void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_containe
     su2double nu_til_old = nodes->GetSolution(iPoint,0);
 
     unsigned short counter = 0;
-    su2double diff = 1.0;
-
-    while (diff > tol) {
+    bool converged = false;
+    
+    while (converged == false) {
 
       su2double const_term = (Eddy_Visc/Density_Normal) * pow(Kin_Visc_Normal,3)*cv1_3;
 
@@ -1702,12 +1702,15 @@ void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_containe
       su2double func_prime = 4.0*nu_til_3 - 3.0*(Eddy_Visc/Density_Normal)*nu_til_2;
       su2double nu_til = nu_til_old - func/func_prime;
 
-      diff = fabs(nu_til-nu_til_old);
+      /* Define a norm
+       */
+      if (fabs(1.0 - nu_til/nu_til_old) < tol) converged = true;
+      
       nu_til_old = nu_til;
 
       counter++;
       if (counter > max_iter) {
-        cout << "WARNING: Nu_tilde evaluation has not converged." << endl;
+        //cout << "WARNING: Nu_tilde evaluation has not converged." << fabs(1.0 - nu_til/nu_til_old) << " " << nu_til << endl;
         break;
       }
     }
