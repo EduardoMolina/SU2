@@ -884,7 +884,7 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
   const su2double Cp = (Gamma / Gamma_Minus_One) * Gas_Constant;
 
   constexpr unsigned short max_iter = 50;
-  const su2double tol = 1e-6;
+  const su2double tol = 1e-3;
 
   /*--- Compute the recovery factor ---*/
   // Double-check: laminar or turbulent Pr for this?
@@ -1062,13 +1062,16 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
 
         /* Define a norm
          */
-        if (fabs(1.0 - U_Tau/U_Tau0) < tol) converged = true;
-        
-         counter++;
-         if (counter > max_iter) {
-           nodes->SetTauWall(iPoint,-1.0);
-           break;
-         }
+        su2double norm = fabs(1.0 - U_Tau/U_Tau0);
+        if ( norm < tol){
+          converged = true;
+          break;
+        }
+        counter++;
+        if (counter > max_iter) {
+          nodes->SetTauWall(iPoint,-1.0);
+          break;
+        }
          
        }
       
