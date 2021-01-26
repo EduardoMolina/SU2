@@ -236,4 +236,13 @@ public:
                      CSolver** solver_container,
                      CConfig* config) override;
 
+  /*!
+   * \brief Computes the eddy viscosity at the 1st point off  on the surface using a wall function.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] config - Definition of the particular problem.
+   */
+  void SetEddyViscFirstPoint(CGeometry *geometry,
+                     CSolver** solver_container,
+                     CConfig* config) override;
 };
