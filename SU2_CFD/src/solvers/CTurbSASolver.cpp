@@ -1579,20 +1579,8 @@ void CTurbSASolver::BC_NearField_Boundary(CGeometry *geometry, CSolver **solver_
 void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
                                   CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
 
-  const su2double Gas_Constant = config->GetGas_ConstantND();
-  const su2double Cp = (Gamma / Gamma_Minus_One) * Gas_Constant;
-
   constexpr unsigned short max_iter = 100;
   const su2double tol = 1e-3;
-
-  /*--- Compute the recovery factor ---*/
-  // su2double-check: laminar or turbulent Pr for this?
-  const su2double Recovery = pow(config->GetPrandtl_Lam(),(1.0/3.0));
-
-  /*--- Typical constants from boundary layer theory ---*/
-
-  const su2double kappa = 0.4;
-  const su2double B = 5.5;
   const su2double cv1_3 = 7.1*7.1*7.1;
 
   CVariable* flow_nodes = solver_container[FLOW_SOL]->GetNodes();
@@ -1607,115 +1595,42 @@ void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_containe
 
     const auto iPoint = geometry->vertex[val_marker][iVertex]->GetNode();
 
-    /*--- Compute dual-grid area and boundary normal ---*/
-
-    const auto Normal = geometry->vertex[val_marker][iVertex]->GetNormal();
-
-    su2double Area = GeometryToolbox::Norm(nDim, Normal);
-
-    su2double UnitNormal[MAXNDIM] = {0.0};
-    for (auto iDim = 0u; iDim < nDim; iDim++)
-      UnitNormal[iDim] = -Normal[iDim]/Area;
-
-    /*--- Get the velocity, pressure, and temperature at the nearest
-     (normal) interior point. ---*/
-
-    su2double Vel[MAXNDIM] = {0.0};
-    for (auto iDim = 0u; iDim < nDim; iDim++)
-      Vel[iDim] = flow_nodes->GetVelocity(Point_Normal,iDim);
-    su2double P_Normal = flow_nodes->GetPressure(Point_Normal);
-    su2double T_Normal = flow_nodes->GetTemperature(Point_Normal);
-
-    /*--- Compute the wall-parallel velocity at first point off the wall ---*/
-
-    su2double VelNormal = GeometryToolbox::DotProduct(int(MAXNDIM), Vel, UnitNormal);
-
-    su2double VelTang[MAXNDIM] = {0.0};
-    for (auto iDim = 0u; iDim < nDim; iDim++)
-      VelTang[iDim] = Vel[iDim] - VelNormal*UnitNormal[iDim];
-
-    su2double VelTangMod = GeometryToolbox::Norm(int(MAXNDIM), VelTang);
-
-    /*--- Compute the wall temperature using the Crocco-Buseman equation ---*/
-
-    //T_Wall = T_Normal * (1.0 + 0.5*Gamma_Minus_One*Recovery*M_Normal*M_Normal);
-    su2double T_Wall = T_Normal + Recovery*pow(VelTangMod,2.0)/(2.0*Cp);
-
-    /*--- Extrapolate the pressure from the interior & compute the
-     wall density using the equation of state ---*/
-
-    su2double P_Wall = P_Normal;
-    su2double Density_Wall = P_Wall/(Gas_Constant*T_Wall);
-
-    /*--- Get wall shear stress computed by flow solver ---*/
-
-    su2double Lam_Visc_Wall = flow_nodes->GetLaminarViscosity(iPoint);
-    su2double Tau_Wall = flow_nodes->GetTauWall(iPoint);
-
-    /*--- Friction velocity and u+ ---*/
-
-    su2double U_Tau = sqrt(Tau_Wall/Density_Wall);
-    su2double U_Plus = VelTangMod/U_Tau;
-
-    /*--- Gamma, Beta, Q, and Phi, defined by Nichols & Nelson (2004) ---*/
-
-    su2double Gam  = Recovery*U_Tau*U_Tau/(2.0*Cp*T_Wall);
-    su2double Beta = 0.0; // For adiabatic flows only
-    su2double Q    = sqrt(Beta*Beta + 4.0*Gam);
-    su2double Phi  = asin(-1.0*Beta/Q);
-
-    /*--- Y+ defined by White & Christoph (compressibility and heat transfer)
-     negative value for (2.0*Gam*U_Plus - Beta)/Q ---*/
-
-    su2double Y_Plus_White = exp((kappa/sqrt(Gam))*(asin((2.0*Gam*U_Plus - Beta)/Q) - Phi))*exp(-1.0*kappa*B);
-
-    /*--- Now compute the Eddy viscosity at the first point off of the wall ---*/
-
-    su2double Lam_Visc_Normal = flow_nodes->GetLaminarViscosity(Point_Normal);
-    su2double Density_Normal = flow_nodes->GetDensity(Point_Normal);
-    su2double Kin_Visc_Normal = Lam_Visc_Normal/Density_Normal;
-
-    su2double dypw_dyp = 2.0*Y_Plus_White*(kappa*sqrt(Gam)/Q)*sqrt(1.0 - pow(2.0*Gam*U_Plus - Beta,2.0)/(Q*Q));
-    su2double Eddy_Visc = Lam_Visc_Wall*(1.0 + dypw_dyp - kappa*exp(-1.0*kappa*B)*
-                                         (1.0 + kappa*U_Plus + kappa*kappa*U_Plus*U_Plus/2.0)
-                                         - Lam_Visc_Normal/Lam_Visc_Wall);
-
     /*--- Eddy viscosity should be always a positive number ---*/
 
-    Eddy_Visc = max(0.0, Eddy_Visc);
+    su2double Eddy_Visc = flow_nodes->GetEddyViscosity(Point_Normal);
 
     /*--- Solve for the new value of nu_tilde given the eddy viscosity and using a Newton method ---*/
 
-    su2double nu_til_old = nodes->GetSolution(iPoint,0);
-
+    su2double nu_til = nodes->GetSolution(iPoint,0);
     unsigned short counter = 0;
-    bool converged = false;
     
+    bool converged = false;
     while (converged == false) {
-
-      su2double const_term = (Eddy_Visc/Density_Normal) * pow(Kin_Visc_Normal,3)*cv1_3;
-
-      su2double nu_til_2 = pow(nu_til_old,2);
-      su2double nu_til_3 = nu_til_old * nu_til_2;
-
-      su2double func = nu_til_old * (nu_til_3 - (Eddy_Visc/Density_Normal)*nu_til_2) + const_term;
-      su2double func_prime = 4.0*nu_til_3 - 3.0*(Eddy_Visc/Density_Normal)*nu_til_2;
-      su2double nu_til = nu_til_old - func/func_prime;
-
-      /* Define a norm
-       */
-      if (fabs(1.0 - nu_til/nu_til_old) < tol) converged = true;
       
-      nu_til_old = nu_til;
+      su2double nu_til_old = nu_til;
 
+      su2double func = nu_til_old*nu_til_old*nu_til_old*nu_til_old - Eddy_Visc*(nu_til_old*nu_til_old*nu_til_old + cv1_3);
+      su2double func_prim = 4.0 * nu_til_old*nu_til_old*nu_til_old - 3.0*Eddy_Visc*nu_til_old*nu_til_old;
+      nu_til = nu_til_old - func/func_prim;
+
+      su2double norm  = fabs(1. - nu_til/nu_til_old);
+      
+      if (norm < tol){
+        converged = true;
+        break;
+      }
       counter++;
       if (counter > max_iter) {
-        //cout << "WARNING: Nu_tilde evaluation has not converged." << fabs(1.0 - nu_til/nu_til_old) << " " << nu_til << endl;
+        //cout << "WARNING: Nu_tilde evaluation has not converged." << endl;
+        converged = false;
         break;
       }
     }
 
-    nodes->SetSolution_Old(Point_Normal, 0, nu_til_old);
+    /* --- If not converged jump to the next point. --- */
+    if (!converged) continue;
+
+    nodes->SetSolution_Old(Point_Normal, 0, nu_til);
     LinSysRes.SetBlock_Zero(Point_Normal);
 
     /*--- includes 1 in the diagonal ---*/
