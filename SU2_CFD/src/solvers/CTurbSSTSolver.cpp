@@ -469,6 +469,46 @@ void CTurbSSTSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_cont
       /*--- Change rows of the Jacobian (includes 1 in the diagonal) ---*/
       Jacobian.DeleteValsRowi(iPoint*nVar);
       Jacobian.DeleteValsRowi(iPoint*nVar+1);
+      
+      /*--- If using wall function: Set K and Omega at the first point of the wall ---*/
+      su2double TauWall_i = solver_container[FLOW_SOL]->GetNodes()->GetTauWall(iPoint);
+      
+      if (TauWall_i > -1.0){
+        /*--- distance to closest neighbor ---*/
+        const auto jPoint = geometry->vertex[val_marker][iVertex]->GetNormal_Neighbor();
+
+        su2double distance2 = GeometryToolbox::SquaredDistance(nDim,
+                                                             geometry->nodes->GetCoord(iPoint),
+                                                             geometry->nodes->GetCoord(jPoint));
+
+        su2double Density_Wall    = solver_container[FLOW_SOL]->GetNodes()->GetDensity(iPoint);
+        su2double Lam_Visc_Wall   = solver_container[FLOW_SOL]->GetNodes()->GetLaminarViscosity(iPoint);
+        su2double U_Tau = sqrt(TauWall_i / Density_Wall);
+        
+        
+        su2double eddy_viscosity  = solver_container[FLOW_SOL]->GetNodes()->GetEddyViscosity(jPoint);
+        su2double density = solver_container[FLOW_SOL]->GetNodes()->GetDensity(jPoint);
+
+        
+        su2double Omega_i = 6. * Lam_Visc_Wall / (0.075 * Density_Wall * distance2);
+        su2double Omega_0 = U_Tau / (0.3 * 0.41 * sqrt(distance2));
+        su2double Omega = sqrt(pow(Omega_0, 2.) + pow(Omega_i, 2.));
+        
+        su2double solution[2];
+        solution[0] = Omega * eddy_viscosity / density;
+        solution[1] = Omega;
+        
+        /*--- Set the solution values and zero the residual ---*/
+        nodes->SetSolution_Old(jPoint,solution);
+        nodes->SetSolution(jPoint,solution);
+        LinSysRes.SetBlock_Zero(jPoint);
+        
+        /*--- Change rows of the Jacobian (includes 1 in the diagonal) ---*/
+        Jacobian.DeleteValsRowi(jPoint*nVar);
+        Jacobian.DeleteValsRowi(jPoint*nVar+1);
+
+      }
+      
     }
   }
 }
