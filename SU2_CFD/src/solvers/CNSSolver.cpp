@@ -193,7 +193,11 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
 
   if (wall_functions) {
     SetTauWall_WF(geometry, solver_container, config);
-    SetEddyViscFirstPoint(geometry, solver_container, config);
+    if (config->GetKind_Turb_Model() == SA ||
+        config->GetKind_Turb_Model() == SA_E ||
+        config->GetKind_Turb_Model() == SA_E_COMP ||
+        config->GetKind_Turb_Model() == SA_NEG)
+      SetEddyViscFirstPoint(geometry, solver_container, config);
   }
 
 }
@@ -897,12 +901,15 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
 
   for (auto iMarker = 0u; iMarker < config->GetnMarker_All(); iMarker++) {
 
-    if (!config->GetViscous_Wall(iMarker)) continue;
-
     /*--- Identify the boundary by string name ---*/
 
     const auto Marker_Tag = config->GetMarker_All_TagBound(iMarker);
 
+    /*--- Identify if this is a wall function marker---*/
+    
+    if (!config->GetViscous_Wall(iMarker)) continue;
+    if (config->GetWallFunction_Treatment(Marker_Tag) != STANDARD_WALL_FUNCTION) continue;
+    
     /*--- Get the specified wall heat flux from config ---*/
 
     // Wall_HeatFlux = config->GetWall_HeatFlux(Marker_Tag);
@@ -1073,21 +1080,21 @@ void CNSSolver::SetTauWall_WF(CGeometry *geometry, CSolver **solver_container, C
           break;
         }
          
-       }
+      }
       
        /* --- If not converged jump to the next point. --- */
-       if (!converged) continue;
+      if (!converged) continue;
        
-       /*--- Calculate an updated value for the wall shear stress
+      /*--- Calculate an updated value for the wall shear stress
          using the y+ value, the definition of y+, and the definition of
          the friction velocity. ---*/
-       Tau_Wall = (1.0/Density_Wall)*pow(Y_Plus*Lam_Visc_Wall/WallDistMod,2.0);
+      Tau_Wall = (1.0/Density_Wall)*pow(Y_Plus*Lam_Visc_Wall/WallDistMod,2.0);
 
-       /*--- Store this value for the wall shear stress at the node.  ---*/
-       nodes->SetTauWall(iPoint,Tau_Wall);
-       nodes->SetTemperature(iPoint,T_Wall);
-       //nodes->SetDensity(iPoint,Density_Wall);
-
+      /*--- Store this value for the wall shear stress at the node.  ---*/
+      nodes->SetTauWall(iPoint,Tau_Wall);
+      nodes->SetTemperature(iPoint,T_Wall);
+      //nodes->SetDensity(iPoint,Density_Wall);
+            
     }
 
   }
