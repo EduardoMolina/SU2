@@ -391,6 +391,7 @@ void CTurbSSTSolver::Source_Template(CGeometry *geometry, CSolver **solver_conta
 
 void CTurbSSTSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
                                       CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
+  bool compressible = (config->GetKind_Regime() == COMPRESSIBLE);
   bool rough_wall = false;
   string Marker_Tag = config->GetMarker_All_TagBound(val_marker);
   unsigned short WallType; su2double Roughness_Height;
@@ -473,7 +474,7 @@ void CTurbSSTSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_cont
       /*--- If using wall function: Set K and Omega at the first point of the wall ---*/
       su2double TauWall_i = solver_container[FLOW_SOL]->GetNodes()->GetTauWall(iPoint);
       
-      if (TauWall_i > -1.0){
+      if ((TauWall_i > -1.0) && compressible){
         /*--- distance to closest neighbor ---*/
         const auto jPoint = geometry->vertex[val_marker][iVertex]->GetNormal_Neighbor();
 
@@ -485,10 +486,8 @@ void CTurbSSTSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_cont
         su2double Lam_Visc_Wall   = solver_container[FLOW_SOL]->GetNodes()->GetLaminarViscosity(iPoint);
         su2double U_Tau = sqrt(TauWall_i / Density_Wall);
         
-        
         su2double eddy_viscosity  = solver_container[FLOW_SOL]->GetNodes()->GetEddyViscosity(jPoint);
         su2double density = solver_container[FLOW_SOL]->GetNodes()->GetDensity(jPoint);
-
         
         su2double Omega_i = 6. * Lam_Visc_Wall / (0.075 * Density_Wall * distance2);
         su2double Omega_0 = U_Tau / (0.3 * 0.41 * sqrt(distance2));
