@@ -424,6 +424,11 @@ void CFlowCompOutput::SetVolumeOutputFields(CConfig *config){
   // MPI-Rank
   AddVolumeOutput("RANK", "rank", "MPI", "Rank of the MPI-partition");
 
+  // Wall Function
+  if (config->GetWall_Functions()){
+    AddVolumeOutput("TAU_WALL_WF", "Tau_Wall_WF", "WALL_FUNCTION", "Value of the Roe dissipation");
+  }
+  
   if (config->GetTime_Domain()){
     SetTimeAveragedFields();
   }
@@ -573,6 +578,11 @@ void CFlowCompOutput::LoadVolumeData(CConfig *config, CGeometry *geometry, CSolv
 
   // MPI-Rank
   SetVolumeOutputValue("RANK", iPoint, rank);
+  
+  // Wall Function
+  if (config->GetWall_Functions()){
+    SetVolumeOutputValue("TAU_WALL_WF", iPoint, Node_Flow->GetTauWall(iPoint));
+  }
 
   if (config->GetTime_Domain()){
     LoadTimeAveragedData(iPoint, Node_Flow);
