@@ -1577,7 +1577,7 @@ void CTurbSASolver::BC_NearField_Boundary(CGeometry *geometry, CSolver **solver_
 }
 
 void CTurbSASolver::SetNuTilde_WF(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
-                                  CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
+                                  CNumerics *visc_numerics, const CConfig *config, unsigned short val_marker) {
 
   constexpr unsigned short max_iter = 100;
   const su2double tol = 1e-3;

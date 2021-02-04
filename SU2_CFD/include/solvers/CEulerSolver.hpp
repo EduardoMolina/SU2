@@ -37,6 +37,8 @@
  */
 class CEulerSolver : public CFVMFlowSolverBase<CEulerVariable, COMPRESSIBLE> {
 protected:
+  using BaseClass = CFVMFlowSolverBase<CEulerVariable, COMPRESSIBLE>;
+
   su2double
   Prandtl_Lam = 0.0,    /*!< \brief Laminar Prandtl number. */
   Prandtl_Turb = 0.0;   /*!< \brief Turbulent Prandtl number. */
@@ -109,11 +111,6 @@ protected:
 
   vector<CFluidModel*> FluidModel;   /*!< \brief fluid model used in the solver. */
 
-  unsigned long ErrorCounter = 0;    /*!< \brief Counter for number of un-physical states. */
-
-  su2double Global_Delta_Time = 0.0, /*!< \brief Time-step for TIME_STEPPING time marching strategy. */
-  Global_Delta_UnstTimeND = 0.0;     /*!< \brief Unsteady time step for the dual time strategy. */
-
   /*--- Turbomachinery Solver Variables ---*/
 
   su2double ***AverageFlux = nullptr,
@@ -154,12 +151,6 @@ protected:
                      ***CkOutflow2 = nullptr;
 
   /*--- End of Turbomachinery Solver Variables ---*/
-
-  /*!
-   * \brief Generic implementation of explicit iterations (RK, Classic RK and EULER).
-   */
-  template<ENUM_TIME_INT IntegrationType>
-  void Explicit_Iteration(CGeometry *geometry, CSolver **solver_container, CConfig *config, unsigned short iRKStep);
 
   /*!
    * \brief Preprocessing actions common to the Euler and NS solvers.
@@ -234,7 +225,7 @@ protected:
    * \param[in] geometry - Geometrical definition of the problem.
    * \param[in] config - Definition of the particular problem.
    */
-  void SetMax_Eigenvalue(CGeometry *geometry, CConfig *config);
+  void SetMax_Eigenvalue(CGeometry *geometry, const CConfig *config);
 
   /*!
    * \brief Compute the undivided laplacian for the solution.
@@ -261,11 +252,10 @@ protected:
    * \brief Compute the velocity^2, SoundSpeed, Pressure, Enthalpy, Viscosity.
    * \param[in] solver_container - Container vector with all the solutions.
    * \param[in] config - Definition of the particular problem.
-   * \param[in] Output - boolean to determine whether to print output.
    * \return - The number of non-physical points.
    */
   virtual unsigned long SetPrimitive_Variables(CSolver **solver_container,
-                                               CConfig *config, bool Output);
+                                               const CConfig *config);
 
   /*!
    * \brief Set gradients of coefficients for fixed CL mode
@@ -279,6 +269,13 @@ protected:
    * \param[in] config - Definition of the particular problem.
    */
   void InstantiateEdgeNumerics(const CSolver* const* solvers, const CConfig* config) final;
+
+  /*!
+   * \brief Set the solver nondimensionalization.
+   * \param[in] config - Definition of the particular problem.
+   * \param[in] iMesh - Index of the mesh in multigrid computations.
+   */
+  void SetNondimensionalization(CConfig *config, unsigned short iMesh);
 
 public:
   /*!
@@ -299,13 +296,6 @@ public:
    * \brief Destructor of the class.
    */
   ~CEulerSolver(void) override;
-
-  /*!
-   * \brief Set the solver nondimensionalization.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] iMesh - Index of the mesh in multigrid computations.
-   */
-  void SetNondimensionalization(CConfig *config, unsigned short iMesh) final;
 
   /*!
    * \brief Compute the pressure at the infinity.
@@ -356,20 +346,6 @@ public:
                        CNumerics **numerics_container,
                        CConfig *config,
                        unsigned short iMesh) final;
-
-  /*!
-   * \brief Compute the viscous contribution for a particular edge.
-   * \note The convective residual methods include a call to this for each edge,
-   *       this allows convective and viscous loops to be "fused".
-   * \param[in] iEdge - Edge for which the flux and Jacobians are to be computed.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver_container - Container vector with all the solutions.
-   * \param[in] numerics - Description of the numerical method.
-   * \param[in] config - Definition of the particular problem.
-   */
-  inline virtual void Viscous_Residual(unsigned long iEdge, CGeometry *geometry, CSolver **solver_container,
-                                       CNumerics *numerics, CConfig *config) { }
-  using CSolver::Viscous_Residual; /*--- Silence warning ---*/
 
   /*!
    * \brief Recompute the extrapolated quantities, after MUSCL reconstruction,
@@ -454,8 +430,7 @@ public:
    * \param[in,out] preconditioner - The preconditioner matrix, must be allocated outside.
    */
   void SetPreconditioner(const CConfig *config, unsigned long iPoint,
-                         su2double delta, su2double** preconditioner) const;
-  using CSolver::SetPreconditioner; /*--- Silence warning. ---*/
+                         su2double delta, su2activematrix& preconditioner) const;
 
   /*!
    * \brief Parallelization of Undivided Laplacian.
@@ -1091,36 +1066,6 @@ public:
   void UpdateCustomBoundaryConditions(CGeometry **geometry_container, CConfig *config) final;
 
   /*!
-   * \brief Set the total residual adding the term that comes from the Dual Time Strategy.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver_container - Container vector with all the solutions.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] iRKStep - Current step of the Runge-Kutta iteration.
-   * \param[in] iMesh - Index of the mesh in multigrid computations.
-   * \param[in] RunTime_EqSystem - System of equations which is going to be solved.
-   */
-  void SetResidual_DualTime(CGeometry *geometry,
-                            CSolver **solver_container,
-                            CConfig *config,
-                            unsigned short iRKStep,
-                            unsigned short iMesh,
-                            unsigned short RunTime_EqSystem) final;
-
-  /*!
-   * \brief Load a solution from a restart file.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver - Container vector with all of the solvers.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] val_iter - Current external iteration number.
-   * \param[in] val_update_geo - Flag for updating coords and grid velocity.
-   */
-  void LoadRestart(CGeometry **geometry,
-                   CSolver ***solver,
-                   CConfig *config,
-                   int val_iter,
-                   bool val_update_geo) final;
-
-  /*!
    * \brief Set the initial condition for the Euler Equations.
    * \param[in] geometry - Geometrical definition of the problem.
    * \param[in] solver_container - Container with all the solutions.
@@ -1136,7 +1081,7 @@ public:
    * \brief Set the solution using the Freestream values.
    * \param[in] config - Definition of the particular problem.
    */
-  void SetFreeStream_Solution(CConfig *config) final;
+  void SetFreeStream_Solution(const CConfig *config) final;
 
   /*!
    * \brief Initilize turbo containers.
@@ -1662,7 +1607,7 @@ public:
   void PrintVerificationError(const CConfig* config) const final;
 
   /*!
-   * \brief The Euler and NS solvers support MPI+OpenMP (except the BC bits).
+   * \brief The Euler and NS solvers support MPI+OpenMP.
    */
   inline bool GetHasHybridParallel() const final { return true; }
 
