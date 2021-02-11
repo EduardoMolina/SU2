@@ -112,16 +112,18 @@ def main():
   # Command line options
   parser=OptionParser()
   parser.add_option("-f", "--file", dest="filename", help="Read config from FILE", metavar="FILE")
-  parser.add_option("--nDim", dest="nDim", default=2, help="Define the number of DIMENSIONS",
-                    metavar="DIMENSIONS")
   parser.add_option("--nZone", dest="nZone", default=1, help="Define the number of ZONES",
                     metavar="ZONES")
   parser.add_option("--parallel", action="store_true",
                     help="Specify if we need to initialize MPI", dest="with_MPI", default=False)
+  parser.add_option("--RPMtrim", action="store_true",
+                    help="Specify if we need to trim with_RPM", dest="with_RPMtrim", default=False)
+  parser.add_option("--Thrust", dest="Thrust", default=1, help="Define the target thrust in [N]",
+                    metavar="THRUST")
 
   (options, args) = parser.parse_args()
-  options.nDim  = int( options.nDim )
-  options.nZone = int( options.nZone )
+  options.nZone   = int( options.nZone )
+  options.Thrust  = float( options.Thrust )
 
   # Import mpi4py for parallel run
   has_mpi = False
@@ -213,6 +215,9 @@ def main():
       bemt.v_inf     = VelActDisk
         
       # Run the BEMT solver and get dCt/dr_ and dCP/dr_ (note that r_ = r/R)
+      if (options.with_RPMtrim):
+        bemt.trim_rpm(options.Thrust, 5000, 20000)
+
       T_bemt, Q_bemt, P_bemt, df_bemt    = bemt.run()
       J_bemt, CT_bemt, CQ_bemt, CP_bemt, eta_bemt = bemt.rotor_coeffs(T_bemt, Q_bemt, P_bemt)
       if (rank == 0):
