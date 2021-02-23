@@ -43,31 +43,28 @@ protected:
   Prandtl_Lam = 0.0,    /*!< \brief Laminar Prandtl number. */
   Prandtl_Turb = 0.0;   /*!< \brief Turbulent Prandtl number. */
 
-  su2double
-  AllBound_CEquivArea_Inv = 0.0, /*!< \brief equivalent area coefficient (inviscid contribution) for all the boundaries. */
-  *CEquivArea_Mnt = nullptr,     /*!< \brief Equivalent area (inviscid contribution) for each boundary. */
-  *CEquivArea_Inv = nullptr;     /*!< \brief Equivalent area (inviscid contribution) for each boundary. */
+  su2double AllBound_CEquivArea_Inv=0.0; /*!< \brief equivalent area coefficient (inviscid contribution) for all the boundaries. */
+  vector<su2double> CEquivArea_Mnt;      /*!< \brief Equivalent area (inviscid contribution) for each boundary. */
+  vector<su2double> CEquivArea_Inv;      /*!< \brief Equivalent area (inviscid contribution) for each boundary. */
 
+  vector<su2double> Inflow_MassFlow;     /*!< \brief Mass flow rate for each boundary. */
+  vector<su2double> Exhaust_MassFlow;    /*!< \brief Mass flow rate for each boundary. */
+  vector<su2double> Inflow_Pressure;     /*!< \brief Fan face pressure for each boundary. */
+  vector<su2double> Inflow_Mach;         /*!< \brief Fan face mach number for each boundary. */
+  vector<su2double> Inflow_Area;         /*!< \brief Boundary total area. */
+  vector<su2double> Exhaust_Area;        /*!< \brief Boundary total area. */
+  vector<su2double> Exhaust_Pressure;    /*!< \brief Fan face pressure for each boundary. */
+  vector<su2double> Exhaust_Temperature; /*!< \brief Fan face mach number for each boundary. */
   su2double
-  *Inflow_MassFlow = nullptr,    /*!< \brief Mass flow rate for each boundary. */
-  *Exhaust_MassFlow = nullptr,   /*!< \brief Mass flow rate for each boundary. */
-  *Inflow_Pressure = nullptr,    /*!< \brief Fan face pressure for each boundary. */
-  *Inflow_Mach = nullptr,        /*!< \brief Fan face mach number for each boundary. */
-  *Inflow_Area = nullptr,        /*!< \brief Boundary total area. */
-  *Exhaust_Area = nullptr,       /*!< \brief Boundary total area. */
-  *Exhaust_Pressure = nullptr,   /*!< \brief Fan face pressure for each boundary. */
-  *Exhaust_Temperature = nullptr,/*!< \brief Fan face mach number for each boundary. */
   Inflow_MassFlow_Total = 0.0,   /*!< \brief Mass flow rate for each boundary. */
   Exhaust_MassFlow_Total = 0.0,  /*!< \brief Mass flow rate for each boundary. */
   Inflow_Pressure_Total = 0.0,   /*!< \brief Fan face pressure for each boundary. */
   Inflow_Mach_Total = 0.0,       /*!< \brief Fan face mach number for each boundary. */
   InverseDesign = 0.0;           /*!< \brief Inverse design functional for each boundary. */
-  unsigned long
-  **DonorGlobalIndex = nullptr;  /*!< \brief Value of the donor global index. */
-  su2double
-  ***DonorPrimVar = nullptr,     /*!< \brief Value of the donor variables at each boundary. */
-  **ActDisk_DeltaP = nullptr,    /*!< \brief Value of the Delta P. */
-  **ActDisk_DeltaT = nullptr;    /*!< \brief Value of the Delta T. */
+  vector<vector<unsigned long> > DonorGlobalIndex;  /*!< \brief Value of the donor global index. */
+  vector<su2activematrix> DonorPrimVar;       /*!< \brief Value of the donor variables at each boundary. */
+  vector<vector<su2double> > ActDisk_DeltaP;  /*!< \brief Value of the Delta P. */
+  vector<vector<su2double> > ActDisk_DeltaT;  /*!< \brief Value of the Delta T. */
 
   su2activevector
   ActDisk_R;         /*!< \brief Value of the actuator disk Radius. */

@@ -175,21 +175,16 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 
   /*--- Allocates a 2D array with variable "outer" sizes and init to 0. ---*/
 
-  auto Alloc2D = [](unsigned long M, const unsigned long* N, su2double**& X) {
-    X = new su2double* [M];
-    for(unsigned long i = 0; i < M; ++i)
-      X[i] = new su2double [N[i]] ();
+  auto Alloc2D = [](unsigned long M, const unsigned long* N, vector<vector<su2double> >& X) {
+    X.resize(M);
+    for(unsigned long i = 0; i < M; ++i) X[i].resize(N[i], 0.0);
   };
 
   /*--- Allocates a 3D array with variable "middle" sizes and init to 0. ---*/
 
-  auto Alloc3D = [](unsigned long M, const unsigned long* N, unsigned long P, su2double***& X) {
-    X = new su2double** [M];
-    for(unsigned long i = 0; i < M; ++i) {
-      X[i] = new su2double* [N[i]];
-      for(unsigned long j = 0; j < N[i]; ++j)
-        X[i][j] = new su2double [P] ();
-    }
+  auto Alloc3D = [](unsigned long M, const unsigned long* N, unsigned long P, vector<su2activematrix>& X) {
+    X.resize(M);
+    for(unsigned long i = 0; i < M; ++i) X[i].resize(N[i],P) = su2double(0.0);
   };
 
   /*--- Store the value of the primitive variables + 2 turb variables at the boundaries,
@@ -199,10 +194,9 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 
   /*--- Store the value of the characteristic primitive variables index at the boundaries ---*/
 
-  DonorGlobalIndex = new unsigned long* [nMarker];
-  for (iMarker = 0; iMarker < nMarker; iMarker++) {
-    DonorGlobalIndex[iMarker] = new unsigned long [nVertex[iMarker]]();
-  }
+  DonorGlobalIndex.resize(nMarker);
+  for (iMarker = 0; iMarker < nMarker; iMarker++)
+    DonorGlobalIndex[iMarker].resize(nVertex[iMarker],0);
 
   /*--- Actuator Disk Radius allocation ---*/
   ActDisk_R.resize(nMarker);
@@ -229,19 +223,19 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 
   /*--- Supersonic coefficients ---*/
 
-  CEquivArea_Inv = new su2double[nMarker];
+  CEquivArea_Inv.resize(nMarker);
 
   /*--- Engine simulation ---*/
 
-  Inflow_MassFlow = new su2double[nMarker];
-  Inflow_Pressure = new su2double[nMarker];
-  Inflow_Mach = new su2double[nMarker];
-  Inflow_Area = new su2double[nMarker];
+  Inflow_MassFlow.resize(nMarker);
+  Inflow_Pressure.resize(nMarker);
+  Inflow_Mach.resize(nMarker);
+  Inflow_Area.resize(nMarker);
 
-  Exhaust_Temperature = new su2double[nMarker];
-  Exhaust_MassFlow = new su2double[nMarker];
-  Exhaust_Pressure = new su2double[nMarker];
-  Exhaust_Area = new su2double[nMarker];
+  Exhaust_Temperature.resize(nMarker);
+  Exhaust_MassFlow.resize(nMarker);
+  Exhaust_Pressure.resize(nMarker);
+  Exhaust_Area.resize(nMarker);
 
   /*--- Read farfield conditions from config ---*/
 
@@ -357,73 +351,10 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 
 CEulerSolver::~CEulerSolver(void) {
 
-  unsigned short iMarker, iSpan;
-  unsigned long iVertex;
+  unsigned short iSpan;
+  unsigned long iMarker;
 
   /*--- Array deallocation ---*/
-
-  delete [] CEquivArea_Inv;
-
-  delete [] Inflow_MassFlow;
-  delete [] Exhaust_MassFlow;
-  delete [] Exhaust_Area;
-  delete [] Inflow_Pressure;
-  delete [] Inflow_Mach;
-  delete [] Inflow_Area;
-
-  delete [] Exhaust_Pressure;
-  delete [] Exhaust_Temperature;
-
-  if (DonorPrimVar != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++) {
-      for (iVertex = 0; iVertex < nVertex[iMarker]; iVertex++)
-        delete [] DonorPrimVar[iMarker][iVertex];
-      delete [] DonorPrimVar[iMarker];
-    }
-    delete [] DonorPrimVar;
-  }
-
-  if (DonorGlobalIndex != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] DonorGlobalIndex[iMarker];
-    delete [] DonorGlobalIndex;
-  }
-
-  if (ActDisk_Fa != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] ActDisk_Fa[iMarker];
-    delete [] ActDisk_Fa;
-  }
-
-  if (ActDisk_Fx != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] ActDisk_Fx[iMarker];
-    delete [] ActDisk_Fx;
-  }
-
-  if (ActDisk_Fy != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] ActDisk_Fy[iMarker];
-    delete [] ActDisk_Fy;
-  }
-
-  if (ActDisk_Fz != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] ActDisk_Fz[iMarker];
-    delete [] ActDisk_Fz;
-  }
-
-  if (ActDisk_DeltaP != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] ActDisk_DeltaP[iMarker];
-    delete [] ActDisk_DeltaP;
-  }
-
-  if (ActDisk_DeltaT != nullptr) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++)
-      delete [] ActDisk_DeltaT[iMarker];
-    delete [] ActDisk_DeltaT;
-  }
 
   for(auto& model : FluidModel) delete model;
 
@@ -816,7 +747,6 @@ void CEulerSolver::InitTurboContainers(CGeometry *geometry, CConfig *config){
       }
     }
   }
-
 
 }
 
@@ -2253,7 +2183,7 @@ unsigned long CEulerSolver::SetPrimitive_Variables(CSolver **solver_container, c
   SU2_OMP_FOR_STAT(omp_chunk_size)
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint ++) {
 
-    /*--- Compressible flow, primitive variables nDim+5, (T, vx, vy, vz, P, rho, h, c, lamMu, eddyMu, ThCond, Cp) ---*/
+    /*--- Compressible flow, primitive variables nDim+9, (T, vx, vy, vz, P, rho, h, c, lamMu, eddyMu, ThCond, Cp) ---*/
 
     bool physical = nodes->SetPrimVar(iPoint, GetFluidModel());
     nodes->SetSecondaryVar(iPoint, GetFluidModel());
@@ -2330,7 +2260,6 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
     return;
   }
 
-  const auto InnerIter        = config->GetInnerIter();
   const bool implicit         = (config->GetKind_TimeIntScheme() == EULER_IMPLICIT);
   const bool ideal_gas        = (config->GetKind_FluidModel() == STANDARD_AIR) ||
                                 (config->GetKind_FluidModel() == IDEAL_GAS);
@@ -2340,8 +2269,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   const auto kind_dissipation = config->GetKind_RoeLowDiss();
 
   const bool muscl            = (config->GetMUSCL_Flow() && (iMesh == MESH_0));
-  const bool limiter          = (config->GetKind_SlopeLimit_Flow() != NO_LIMITER) &&
-                                (InnerIter <= config->GetLimiterIter());
+  const bool limiter          = (config->GetKind_SlopeLimit_Flow() != NO_LIMITER);
   const bool van_albada       = (config->GetKind_SlopeLimit_Flow() == VAN_ALBADA_EDGE);
 
   /*--- Non-physical counter. ---*/
@@ -2414,13 +2342,6 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
       auto Gradient_i = nodes->GetGradient_Reconstruction(iPoint);
       auto Gradient_j = nodes->GetGradient_Reconstruction(jPoint);
 
-      su2double *Limiter_i = nullptr, *Limiter_j = nullptr;
-
-      if (limiter) {
-        Limiter_i = nodes->GetLimiter_Primitive(iPoint);
-        Limiter_j = nodes->GetLimiter_Primitive(jPoint);
-      }
-
       for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
 
         su2double Project_Grad_i = 0.0;
@@ -2431,19 +2352,21 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
           Project_Grad_j -= Vector_ij[iDim]*Gradient_j[iVar][iDim];
         }
 
-        if (limiter) {
-          if (van_albada) {
-            su2double V_ij = V_j[iVar] - V_i[iVar];
-            Limiter_i[iVar] = V_ij*( 2.0*Project_Grad_i + V_ij) / (4*pow(Project_Grad_i, 2) + pow(V_ij, 2) + EPS);
-            Limiter_j[iVar] = V_ij*(-2.0*Project_Grad_j + V_ij) / (4*pow(Project_Grad_j, 2) + pow(V_ij, 2) + EPS);
-          }
-          Primitive_i[iVar] = V_i[iVar] + Limiter_i[iVar]*Project_Grad_i;
-          Primitive_j[iVar] = V_j[iVar] + Limiter_j[iVar]*Project_Grad_j;
+        su2double lim_i = 1.0;
+        su2double lim_j = 1.0;
+
+        if (van_albada) {
+          su2double V_ij = V_j[iVar] - V_i[iVar];
+          lim_i = V_ij*( 2.0*Project_Grad_i + V_ij) / (4*pow(Project_Grad_i, 2) + pow(V_ij, 2) + EPS);
+          lim_j = V_ij*(-2.0*Project_Grad_j + V_ij) / (4*pow(Project_Grad_j, 2) + pow(V_ij, 2) + EPS);
         }
-        else {
-          Primitive_i[iVar] = V_i[iVar] + Project_Grad_i;
-          Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
+        else if (limiter) {
+          lim_i = nodes->GetLimiter_Primitive(iPoint, iVar);
+          lim_j = nodes->GetLimiter_Primitive(jPoint, iVar);
         }
+
+        Primitive_i[iVar] = V_i[iVar] + lim_i * Project_Grad_i;
+        Primitive_j[iVar] = V_j[iVar] + lim_j * Project_Grad_j;
 
       }
 
@@ -5162,8 +5085,10 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
         /*--- Set the normal vector and the coordinates ---*/
 
         visc_numerics->SetNormal(Normal);
-        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint),
-                                geometry->nodes->GetCoord(Point_Normal));
+        su2double Coord_Reflected[MAXNDIM];
+        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 
         /*--- Primitive variables, and gradient ---*/
 
@@ -5630,7 +5555,10 @@ void CEulerSolver::BC_Riemann(CGeometry *geometry, CSolver **solver_container,
         /*--- Set the normal vector and the coordinates ---*/
 
         visc_numerics->SetNormal(Normal);
-        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+        su2double Coord_Reflected[MAXNDIM];
+        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 
         /*--- Primitive variables, and gradient ---*/
 
@@ -6144,7 +6072,10 @@ void CEulerSolver::BC_TurboRiemann(CGeometry *geometry, CSolver **solver_contain
           /*--- Set the normal vector and the coordinates ---*/
 
           visc_numerics->SetNormal(Normal);
-          visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+          su2double Coord_Reflected[MAXNDIM];
+          GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+                                                   geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+          visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 
           /*--- Primitive variables, and gradient ---*/
 
@@ -7044,7 +6975,10 @@ void CEulerSolver::BC_Giles(CGeometry *geometry, CSolver **solver_container, CNu
         /*--- Set the normal vector and the coordinates ---*/
 
         visc_numerics->SetNormal(Normal);
-        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+        su2double Coord_Reflected[MAXNDIM];
+        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 
         /*--- Primitive variables, and gradient ---*/
 
@@ -7384,7 +7318,10 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //
@@ -7558,7 +7495,10 @@ void CEulerSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container,
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //
@@ -7702,7 +7642,10 @@ void CEulerSolver::BC_Supersonic_Inlet(CGeometry *geometry, CSolver **solver_con
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //
@@ -7824,7 +7767,10 @@ void CEulerSolver::BC_Supersonic_Outlet(CGeometry *geometry, CSolver **solver_co
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //
@@ -8044,7 +7990,10 @@ void CEulerSolver::BC_Engine_Inflow(CGeometry *geometry, CSolver **solver_contai
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //
@@ -8295,7 +8244,10 @@ void CEulerSolver::BC_Engine_Exhaust(CGeometry *geometry, CSolver **solver_conta
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //
@@ -8855,7 +8807,10 @@ void CEulerSolver::BC_ActDisk(CGeometry *geometry, CSolver **solver_container, C
 //        /*--- Set the normal vector and the coordinates ---*/
 //
 //        visc_numerics->SetNormal(Normal);
-//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->node[iPoint_Normal]->GetCoord());
+//        su2double Coord_Reflected[MAXNDIM];
+//        GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+//                                                 geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+//        visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 //
 //        /*--- Primitive variables, and gradient ---*/
 //

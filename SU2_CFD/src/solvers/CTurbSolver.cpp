@@ -27,6 +27,7 @@
 
 #include "../../include/solvers/CTurbSolver.hpp"
 #include "../../../Common/include/parallelization/omp_structure.hpp"
+#include "../../../Common/include/toolboxes/geometry_toolbox.hpp"
 
 
 CTurbSolver::CTurbSolver(void) : CSolver() { }
@@ -74,16 +75,8 @@ CTurbSolver::CTurbSolver(CGeometry* geometry, CConfig *config) : CSolver() {
 
 CTurbSolver::~CTurbSolver(void) {
 
-  if (Inlet_TurbVars != nullptr) {
-    for (unsigned short iMarker = 0; iMarker < nMarker; iMarker++) {
-      if (Inlet_TurbVars[iMarker] != nullptr) {
-        for (unsigned long iVertex = 0; iVertex < nVertex[iMarker]; iVertex++) {
-          delete [] Inlet_TurbVars[iMarker][iVertex];
-        }
-        delete [] Inlet_TurbVars[iMarker];
-      }
-    }
-    delete [] Inlet_TurbVars;
+  for (auto& mat : SlidingState) {
+    for (auto ptr : mat) delete [] ptr;
   }
 
   delete nodes;
@@ -483,7 +476,10 @@ void CTurbSolver::BC_Fluid_Interface(CGeometry *geometry, CSolver **solver_conta
       /*--- Set the normal vector and the coordinates ---*/
 
       visc_numerics->SetNormal(Normal);
-      visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), geometry->nodes->GetCoord(Point_Normal));
+      su2double Coord_Reflected[MAXNDIM];
+      GeometryToolbox::PointPointReflect(nDim, geometry->nodes->GetCoord(Point_Normal),
+                                               geometry->nodes->GetCoord(iPoint), Coord_Reflected);
+      visc_numerics->SetCoord(geometry->nodes->GetCoord(iPoint), Coord_Reflected);
 
       /*--- Primitive variables ---*/
 
