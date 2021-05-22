@@ -114,6 +114,26 @@ private:
    * \param[in] config - Definition of the particular problem.
    */
   void SetTauWall_WF(CGeometry *geometry, CSolver** solver_container, const CConfig* config);
+  
+  /*!
+   * \brief Computes eddy viscosity (SGS model) for LES problems.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] config - Definition of the particular problem.
+   */
+  void Setmut_LES(CGeometry *geometry, CSolver** solver_container, const CConfig* config);
+
+  /*!
+   * \brief Computes the shear stress and heat flux using the 1st node off the wall
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] config - Definition of the particular problem.
+   * \param[in] iRKStep - Current step of the Runge-Kutta iteration.
+   */
+
+  void SetTauWallHeatFlux_WMLES1stPoint(CGeometry *geometry, CSolver **solver_container,
+                                        const CConfig *config, unsigned short iRKStep);
+
 
 public:
   /*!
@@ -195,6 +215,22 @@ public:
    * \param[in] val_marker - Surface marker where the boundary condition is applied.
    */
   void BC_Isothermal_Wall(CGeometry *geometry,
+                          CSolver **solver_container,
+                          CNumerics *conv_numerics,
+                          CNumerics *visc_numerics,
+                          CConfig *config,
+                          unsigned short val_marker) override;
+
+  /*!
+   * \brief Impose the Wall Model boundary condition (weak).
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] conv_numerics - Description of the numerical method.
+   * \param[in] visc_numerics - Description of the numerical method.
+   * \param[in] config - Definition of the particular problem.
+   * \param[in] val_marker - Surface marker where the boundary condition is applied.
+   */
+  void BC_WallModel(CGeometry *geometry,
                           CSolver **solver_container,
                           CNumerics *conv_numerics,
                           CNumerics *visc_numerics,

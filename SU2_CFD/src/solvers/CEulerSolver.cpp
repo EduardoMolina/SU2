@@ -326,6 +326,108 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 
   }
 
+  if (navier_stokes){
+
+    /*--- Set the SGS model in case an LES simulation is carried out.
+     Make a distinction between the SGS models used and set SGSModel and
+    SGSModelUsed accordingly. ---*/
+
+    SGSModel = NULL;
+    SGSModelUsed = false;
+
+    switch( config->GetKind_SGS_Model() ) {
+      /* No LES, so no SGS model needed.
+       Set the pointer to NULL and the boolean to false. */
+      case NO_SGS_MODEL: case IMPLICIT_LES:
+        SGSModel = NULL;
+        SGSModelUsed = false;
+        break;
+      case SMAGORINSKY:
+        SGSModel     = new CSmagorinskyModel;
+        SGSModelUsed = true;
+        break;
+      case WALE:
+        SGSModel     = new CWALEModel;
+        SGSModelUsed = true;
+        break;
+      case VREMAN:
+        SGSModel     = new CVremanModel;
+        SGSModelUsed = true;
+        break;
+      case SIGMA:
+        SGSModel     = new CSIGMAModel;
+        SGSModelUsed = true;
+        break;
+      case AMD:
+        SGSModel     = new CAMDModel;
+        SGSModelUsed = true;
+        break;
+      default:
+        SU2_MPI::Error("Unknown SGS model encountered", CURRENT_FUNCTION);
+    }
+
+    /*--- Set the wall model to NULL ---*/
+
+    WallModel = NULL;
+
+    if (config->GetWall_Models()){
+
+      /*--- Set the WMLES class  ---*/
+      /*--- Check if the Wall models or Wall functions are unique. ---*/
+      /*--- OBS: All the markers must have the same wall model/function ---*/
+
+      vector<unsigned short> WallFunctions_;
+      vector<string> WallFunctionsMarker_;
+      for(unsigned short iMarker=0; iMarker<nMarker; ++iMarker) {
+        switch (config->GetMarker_All_KindBC(iMarker)) {
+          case ISOTHERMAL:
+          case HEAT_FLUX: {
+            string Marker_Tag = config->GetMarker_All_TagBound(iMarker);
+            if(config->GetWallFunction_Treatment(Marker_Tag) != NO_WALL_FUNCTION){
+              WallFunctions_.push_back(config->GetWallFunction_Treatment(Marker_Tag));
+              WallFunctionsMarker_.push_back(Marker_Tag);
+            }
+            break;
+          }
+          default:  /* Just to avoid a compiler warning. */
+            break;
+        }
+      }
+
+      if (!WallFunctions_.empty()){
+        sort(WallFunctions_.begin(), WallFunctions_.end());
+        vector<unsigned short>::iterator it = std::unique( WallFunctions_.begin(), WallFunctions_.end() );
+        WallFunctions_.erase(it, WallFunctions_.end());
+
+        if(WallFunctions_.size() == 1) {
+          switch (config->GetWallFunction_Treatment(WallFunctionsMarker_[0])) {
+            case EQUILIBRIUM_WALL_MODEL:
+              WallModel = new CWallModel1DEQ(config,WallFunctionsMarker_[0]);
+              break;
+            case LOGARITHMIC_WALL_MODEL:
+              WallModel = new CWallModelLogLaw(config,WallFunctionsMarker_[0]);
+              break;
+            case ALGEBRAIC_WALL_MODEL:
+              WallModel = new CWallModelAlgebraic(config,WallFunctionsMarker_[0]);
+              break;
+            case APGLL_WALL_MODEL:
+              WallModel = new CWallModelAPGLL(config,WallFunctionsMarker_[0]);
+              break;
+            case TEMPLATE_WALL_MODEL:
+              WallModel = new CWallModelTemplate(config,WallFunctionsMarker_[0]);
+            break;
+
+            default:
+              break;
+          }
+        }
+        else{
+          SU2_MPI::Error("Wall function/model type must be the same in all wall BCs", CURRENT_FUNCTION);
+        }
+      }
+    }
+  }
+
   /*--- Warning message about non-physical points ---*/
 
   if (config->GetComm_Level() == COMM_FULL) {
@@ -352,6 +454,9 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 CEulerSolver::~CEulerSolver(void) {
 
   for(auto& model : FluidModel) delete model;
+  if( SGSModel  != NULL) delete SGSModel;
+  if( WallModel != NULL) delete WallModel;
+
 }
 
 void CEulerSolver::InstantiateEdgeNumerics(const CSolver* const* solver_container, const CConfig* config) {
@@ -4799,8 +4904,8 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
                                               solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint,0));
 
         /*--- Set the wall shear stress values (wall functions) to -1 (no evaluation using wall functions) ---*/
-
-        visc_numerics->SetTauWall(-1.0, -1.0);
+        
+        visc_numerics->SetTauWall_Flag(false,false);
 
         /*--- Compute and update viscous residual ---*/
 
@@ -5290,8 +5395,8 @@ void CEulerSolver::BC_Riemann(CGeometry *geometry, CSolver **solver_container,
                                               solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint,0));
 
         /*--- Set the wall shear stress values (wall functions) to -1 (no evaluation using wall functions) ---*/
-
-        visc_numerics->SetTauWall(-1.0, -1.0);
+        
+        visc_numerics->SetTauWall_Flag(false,false);
 
         /*--- Compute and update residual ---*/
 
@@ -5807,8 +5912,8 @@ void CEulerSolver::BC_TurboRiemann(CGeometry *geometry, CSolver **solver_contain
                                                 solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint,0));
 
           /*--- Set the wall shear stress values (wall functions) to -1 (no evaluation using wall functions) ---*/
-
-          visc_numerics->SetTauWall(-1.0, -1.0);
+          
+          visc_numerics->SetTauWall_Flag(false,false);
 
           /*--- Compute and update residual ---*/
 
@@ -6707,8 +6812,8 @@ void CEulerSolver::BC_Giles(CGeometry *geometry, CSolver **solver_container, CNu
                                               solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint,0));
 
         /*--- Set the wall shear stress values (wall functions) to -1 (no evaluation using wall functions) ---*/
-
-        visc_numerics->SetTauWall(-1.0, -1.0);
+        
+        visc_numerics->SetTauWall_Flag(false,false);
 
         /*--- Compute and update residual ---*/
 

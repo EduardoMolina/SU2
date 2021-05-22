@@ -147,6 +147,11 @@ protected:
   vector<su2matrix<complex<su2double> > > CkInflow, CkOutflow1, CkOutflow2;
 
   /*--- End of Turbomachinery Solver Variables ---*/
+  
+  CSGSModel *SGSModel;     /*!< \brief LES Subgrid Scale model. */
+  bool SGSModelUsed;       /*!< \brief Whether or not an LES Subgrid Scale model is used. */
+  CWallModel *WallModel;   /*!< \brief Choice of the Wall Model LES. */
+  
 
   /*!
    * \brief Preprocessing actions common to the Euler and NS solvers.

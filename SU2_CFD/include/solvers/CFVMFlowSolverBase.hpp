@@ -158,6 +158,11 @@ class CFVMFlowSolverBase : public CSolver {
   vector<vector<su2double> > CPressureTarget;   /*!< \brief Target Pressure coefficient for each boundary and vertex. */
   vector<vector<su2double> > YPlus;             /*!< \brief Yplus for each boundary and vertex. */
 
+  vector<vector<su2double> > TauWall_WMLES;    /*!< \brief Wall shear stress for each boundary and vertex (WMLES). */
+  vector<vector<su2double> > HeatFlux_WMLES;   /*!< \brief Heat transfer coefficient for each boundary and vertex (WMLES). */
+  vector<su2activematrix> FlowDirTan_WMLES;    /*!< \brief Velocity unit tangent for each boundary and vertex (WMLES). */
+  vector<su2activematrix> VelTimeFilter_WMLES; /*!< \brief Input time filter Velocity for each boundary and vertex (WMLES). */
+
   bool space_centered;       /*!< \brief True if space centered scheme used. */
   bool euler_implicit;       /*!< \brief True if euler implicit scheme used. */
   bool least_squares;        /*!< \brief True if computing gradients by least squares. */
@@ -2455,4 +2460,47 @@ class CFVMFlowSolverBase : public CSolver {
   inline su2double GetYPlus(unsigned short val_marker, unsigned long val_vertex) const final {
     return YPlus[val_marker][val_vertex];
   }
+  
+  /*!
+   * \brief Get the shear stress from the wall model.
+   * \param[in] val_marker - Surface marker where the coefficient is computed.
+   * \param[in] val_vertex - Vertex of the marker <i>val_marker</i> where the coefficient is evaluated.
+   * \return Value of the shear stress from the wall model.
+   */
+  inline su2double GetTauWall_WMLES(unsigned short val_marker, unsigned long val_vertex) const final {
+    return TauWall_WMLES[val_marker][val_vertex];
+  }
+
+  /*!
+   * \brief Get the heat flux from the wall model.
+   * \param[in] val_marker - Surface marker where the coefficient is computed.
+   * \param[in] val_vertex - Vertex of the marker <i>val_marker</i> where the coefficient is evaluated.
+   * \return Value of the heat flux from the wall model.
+   */
+  inline su2double GetHeatFlux_WMLES(unsigned short val_marker, unsigned long val_vertex) const final {
+    return HeatFlux_WMLES[val_marker][val_vertex];
+  }
+
+  /*!
+   * \brief Get the velocity unit tangent vector of the wall model.
+   * \param[in] val_marker - Surface marker where the coefficient is computed.
+   * \param[in] val_vertex - Vertex of the marker <i>val_marker</i> where the coefficient is evaluated.
+   * \param[in] val_idim   - Dimension
+   * \return Value of the unit tangent vector.
+   */
+  inline su2double GetFlowDirTan_WMLES(unsigned short val_marker, unsigned long val_vertex, unsigned long val_idim) const final {
+    return FlowDirTan_WMLES[val_marker][val_vertex][val_idim];
+  }
+
+  /*!
+   * \brief Get the time filtered input velocity vector of the wall model.
+   * \param[in] val_marker - Surface marker where the coefficient is computed.
+   * \param[in] val_vertex - Vertex of the marker <i>val_marker</i> where the coefficient is evaluated.
+   * \param[in] val_idim   - Dimension
+   * \return Value of the time filtered velocity vector.
+   */
+  inline su2double GetVelTimeFilter_WMLES(unsigned short val_marker, unsigned long val_vertex, unsigned long val_idim) const final {
+    return VelTimeFilter_WMLES[val_marker][val_vertex][val_idim];
+  }
+  
 };

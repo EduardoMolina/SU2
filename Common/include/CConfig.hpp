@@ -924,6 +924,7 @@ private:
   long Visualize_CV;          /*!< \brief Node number for the CV to be visualized */
   bool ExtraOutput;           /*!< \brief Check if extra output need. */
   bool Wall_Functions;           /*!< \brief Use wall functions with the turbulence model */
+  bool Wall_Models;              /*!< \brief Use wall modeled Large Eddy Simulation */
   long ExtraHeatOutputZone;      /*!< \brief Heat solver zone with extra screen output */
   bool DeadLoad;                 /*!< \brief Application of dead loads to the FE analysis */
   bool PseudoStatic;             /*!< \brief Application of dead loads to the FE analysis */
@@ -975,10 +976,14 @@ private:
   unsigned short DirectDiff;        /*!< \brief Direct Differentation mode. */
   bool DiscreteAdjoint;                /*!< \brief AD-based discrete adjoint mode. */
   su2double Const_DES;                 /*!< \brief Detached Eddy Simulation Constant. */
+  su2double TimeFilter_WMLES;          /*!< \brief WMLES Time Filter value. */
+  su2double Min_LowDissipation;        /*!< \brief Lower bound for the hybrid central upwind. */
   unsigned short Kind_WindowFct;       /*!< \brief Type of window (weight) function for objective functional. */
   unsigned short Kind_HybridRANSLES;   /*!< \brief Kind of Hybrid RANS/LES. */
   unsigned short Kind_RoeLowDiss;      /*!< \brief Kind of Roe scheme with low dissipation for unsteady flows. */
   bool QCR;                    /*!< \brief Spalart-Allmaras with Quadratic Constitutive Relation, 2000 version (SA-QCR2000) . */
+  bool WMLES_Monitoring;       /*!< \brief WMLES Monitoring. */
+  bool WMLES_First_Point;       /*!< \brief WMLES First Point Off Wall. */
 
   unsigned short nSpanWiseSections; /*!< \brief number of span-wise sections */
   unsigned short nSpanMaxAllZones;  /*!< \brief number of maximum span-wise sections for all zones */
@@ -8757,6 +8762,12 @@ public:
   bool GetWall_Functions(void) const { return Wall_Functions; }
 
   /*!
+   * \brief Get information about whether to use WMLES.
+   * \return <code>TRUE</code> if wall functions are on; otherwise <code>FALSE</code>.
+   */
+  bool GetWall_Models(void) const { return Wall_Models; }
+
+  /*!
    * \brief Get the AD support.
    */
   bool GetAD_Mode(void) const { return AD_Mode;}
@@ -8804,10 +8815,32 @@ public:
   su2double GetConst_DES(void) const { return Const_DES; }
 
   /*!
+   * \brief Get the WMLES time filter value
+   * \return Value of the WMLES time filter.
+   */
+  su2double GetTimeFilter_WMLES(void) const { return TimeFilter_WMLES; }
+
+  /*!
+   * \brief Get the lower bound of the hybrid central upwind.
+   * \return Value of the hybridization.
+   */
+  su2double GetMin_LowDissipation(void) const { return Min_LowDissipation; }
+
+  /*!
    * \brief Get QCR (SA-QCR2000).
    */
   bool GetQCR(void) const { return QCR;}
 
+  /*!
+   * \brief Get WMLES Monitoring
+   */
+  bool GetWMLES_Monitoring(void) const { return WMLES_Monitoring;}
+
+  /*!
+   * \brief Get WMLES 1st Point off Wall
+   */
+  bool GetWMLES_First_Point(void) const { return WMLES_First_Point;}
+  
   /*!
    * \brief Get if AD preaccumulation should be performed.
    */

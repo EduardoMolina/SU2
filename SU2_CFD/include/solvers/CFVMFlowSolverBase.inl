@@ -194,6 +194,14 @@ void CFVMFlowSolverBase<V, R>::Allocate(const CConfig& config) {
 
   Alloc2D(nMarker, nVertex, WallShearStress);
 
+  /*--- Wall Model LES variables ---*/
+  if (config.GetWall_Models()){
+    Alloc3D(nMarker, nVertex, nDim, FlowDirTan_WMLES);
+    Alloc3D(nMarker, nVertex, nDim, VelTimeFilter_WMLES);
+    Alloc2D(nMarker, nVertex, TauWall_WMLES);
+    Alloc2D(nMarker, nVertex, HeatFlux_WMLES);
+  }
+  
   /*--- Store the values of the temperature and the heat flux density at the boundaries,
    used for coupling with a solid donor cell ---*/
   constexpr auto nHeatConjugateVar = 4u;
@@ -443,6 +451,14 @@ void CFVMFlowSolverBase<V, R>::Viscous_Residual_impl(unsigned long iEdge, CGeome
   if (tkeNeeded)
     numerics->SetTurbKineticEnergy(turbNodes->GetSolution(iPoint,0),
                                    turbNodes->GetSolution(jPoint,0));
+  
+  /*--- Wall shear stress values (wall functions) ---*/
+
+  numerics->SetTauWall(nodes->GetTauWall(iPoint),
+                       nodes->GetTauWall(jPoint));
+
+  numerics->SetTauWall_Flag(nodes->GetTauWall_Flag(iPoint),
+                            nodes->GetTauWall_Flag(jPoint));
 
   /*--- Compute and update residual ---*/
 
@@ -1251,6 +1267,9 @@ void CFVMFlowSolverBase<V, R>::BC_Sym_Plane(CGeometry* geometry, CSolver** solve
         if ((config->GetKind_Turb_Model() == SST) || (config->GetKind_Turb_Model() == SST_SUST))
           visc_numerics->SetTurbKineticEnergy(solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint, 0),
                                               solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint, 0));
+        
+        /*--- Set the wall shear stress values (wall functions) to false (no evaluation using wall functions) ---*/
+        visc_numerics->SetTauWall_Flag(false, false);
 
         /*--- Compute and update residual. Note that the viscous shear stress tensor is computed in the
               following routine based upon the velocity-component gradients. ---*/
@@ -1421,8 +1440,8 @@ void CFVMFlowSolverBase<V, FlowRegime>::BC_Fluid_Interface(CGeometry* geometry, 
                                                     solver_container[TURB_SOL]->GetNodes()->GetSolution(iPoint, 0));
 
               /*--- Set the wall shear stress values (wall functions) to -1 (no evaluation using wall functions) ---*/
-
-              visc_numerics->SetTauWall(-1.0, -1.0);
+              
+              visc_numerics->SetTauWall_Flag(false,false);
 
               /*--- Compute and update residual ---*/
 

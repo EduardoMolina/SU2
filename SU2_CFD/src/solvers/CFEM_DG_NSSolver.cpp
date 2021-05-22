@@ -368,13 +368,13 @@ void CFEM_DG_NSSolver::Friction_Forces(const CGeometry* geometry, const CConfig*
                 /* Compute the wall shear stress and heat flux vector using
                    the wall model. */
                 su2double tauWall, qWall, ViscosityWall, kOverCvWall;
-
+                bool converged; su2double gradP_Tan = 0.0;
                 boundaries[iMarker].wallModel->WallShearStressAndHeatFlux(Temperature, velTan,
-                                                                          LaminarViscosity, Pressure,
+                                                                          LaminarViscosity, Pressure, gradP_Tan,
                                                                           Wall_HeatFlux, HeatFlux_Prescribed,
                                                                           Wall_Temperature, Temperature_Prescribed,
                                                                           FluidModel, tauWall, qWall,
-                                                                          ViscosityWall, kOverCvWall);
+                                                                          ViscosityWall, kOverCvWall, converged);
 
                 /* Update the viscous forces and moments. Note that the force direction
                    is the direction of the tangential velocity. */
@@ -6345,13 +6345,13 @@ void CFEM_DG_NSSolver::WallTreatmentViscousFluxes(
 
         /* Compute the wall shear stress and heat flux vector using
            the wall model. */
-        su2double tauWall, qWall, ViscosityWall, kOverCvWall;
-
-        wallModel->WallShearStressAndHeatFlux(Temperature, velTan, LaminarViscosity, Pressure,
+        su2double tauWall, qWall, ViscosityWall, kOverCvWall, gradP_Tan = 0.0;
+        bool converged;
+        wallModel->WallShearStressAndHeatFlux(Temperature, velTan, LaminarViscosity, Pressure, gradP_Tan,
                                               Wall_HeatFlux, HeatFlux_Prescribed,
                                               Wall_Temperature, Temperature_Prescribed,
                                               FluidModel, tauWall, qWall, ViscosityWall,
-                                              kOverCvWall);
+                                              kOverCvWall, converged);
 
         /* Compute the wall velocity in tangential direction. */
         const su2double *solWallInt = solIntL + NPad*ii + llNVar;

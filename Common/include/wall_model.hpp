@@ -66,6 +66,7 @@ public:
    * \param[in]  velExchange            - Velocity at the exchange location.
    * \param[in]  muExchange             - Laminar viscosity at the exchange location.
    * \param[in]  pExchange              - Pressure at the exchange location.
+   * \param[in]  dPds                   - Pressure gradient in the tangent direction.
    * \param[in]  Wall_HeatFlux          - Value of the wall heat flux, if prescribed.
    * \param[in]  HeatFlux_Prescribed    - Whether or not the wall heat flux is prescribed.
    * \param[in]  Wall_Temperature       - Value of the wall temperature, if prescribed.
@@ -81,6 +82,7 @@ public:
                                           const su2double velExchange,
                                           const su2double muExchange,
                                           const su2double pExchange,
+                                          const su2double dPds,
                                           const su2double Wall_HeatFlux,
                                           const bool      HeatFlux_Prescribed,
                                           const su2double TWall,
@@ -89,13 +91,24 @@ public:
                                           su2double       &tauWall,
                                           su2double       &qWall,
                                           su2double       &ViscosityWall,
-                                          su2double       &kOverCvWall);
+                                          su2double       &kOverCvWall,
+                                          bool            &converged);
+  /*!
+   * \brief Virtual function, which updates the wall model exchange location.
+   * \param[in]  h_wm_new              - Updated exchanged location
+   */
+  virtual void UpdateExchangeLocation(const su2double h_wm_new);
+
 protected:
 
-  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
   su2double Pr_lam;  /*!< \brief Laminar Prandtl number. */
   su2double Pr_turb; /*!< \brief Turbulent Prandtl number. */
   su2double karman;  /*!< \brief von Karman constant. */
+  su2double RGas;    /*!< \brief Dimensional Gas Constant. */
+  su2double Gamma;   /*!< \brief Ratio of specific heat. */
+  su2double Cp;      /*!< \brief Specific heat at total pressure. */
+  su2double Cv;      /*!< \brief Specific heat at total volume. */
+  su2double Pref, Tref, Uref; /*!< \brief Pressure, Temperature and Velocity references. */
 
 private:
   /*!
@@ -124,6 +137,7 @@ public:
    * \param[in]  velExchange            - Velocity at the exchange location.
    * \param[in]  muExchange             - Laminar viscosity at the exchange location.
    * \param[in]  pExchange              - Pressure at the exchange location.
+   * \param[in]  dPds                   - Pressure gradient in the tangent direction.
    * \param[in]  Wall_HeatFlux          - Value of the wall heat flux, if prescribed.
    * \param[in]  HeatFlux_Prescribed    - Whether or not the wall heat flux is prescribed.
    * \param[in]  Wall_Temperature       - Value of the wall temperature, if prescribed.
@@ -139,6 +153,7 @@ public:
                                   const su2double velExchange,
                                   const su2double muExchange,
                                   const su2double pExchange,
+                                  const su2double dPds,
                                   const su2double Wall_HeatFlux,
                                   const bool      HeatFlux_Prescribed,
                                   const su2double Wall_Temperature,
@@ -147,10 +162,18 @@ public:
                                   su2double       &tauWall,
                                   su2double       &qWall,
                                   su2double       &ViscosityWall,
-                                  su2double       &kOverCvWall) override;
+                                  su2double       &kOverCvWall,
+                                  bool            &converged) override;
+
+ /*!
+  * \brief Updates the wall model exchange location.
+  * \param[in]  h_wm_new              - Updated exchanged location
+  */
+  void UpdateExchangeLocation(const su2double h_wm_new) override;
 
 private:
 
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
   su2double expansionRatio;   /*!< \brief  Stretching factor used for the wall model grid. */
   int       numPoints;        /*!< \brief  Number of points used in the wall model grid. */
 
@@ -183,6 +206,7 @@ public:
    * \param[in]  velExchange            - Velocity at the exchange location.
    * \param[in]  muExchange             - Laminar Viscosity at the exchange location.
    * \param[in]  pExchange              - Pressure at the exchange location.
+   * \param[in]  dPds                   - Pressure gradient in the tangent direction.
    * \param[in]  Wall_HeatFlux          - Value of the wall heat flux, if prescribed.
    * \param[in]  HeatFlux_Prescribed    - Whether or not the wall heat flux is prescribed.
    * \param[in]  Wall_Temperature       - Value of the wall temperature, if prescribed.
@@ -198,6 +222,7 @@ public:
                                   const su2double velExchange,
                                   const su2double muExchange,
                                   const su2double pExchange,
+                                  const su2double dPds,
                                   const su2double Wall_HeatFlux,
                                   const bool      HeatFlux_Prescribed,
                                   const su2double Wall_Temperature,
@@ -206,14 +231,217 @@ public:
                                   su2double       &tauWall,
                                   su2double       &qWall,
                                   su2double       &ViscosityWall,
-                                  su2double       &kOverCvWall) override;
+                                  su2double       &kOverCvWall,
+                                  bool            &converged) override;
+
+ /*!
+  * \brief Updates the wall model exchange location.
+  * \param[in]  h_wm_new              - Updated exchanged location
+  */
+  void UpdateExchangeLocation(const su2double h_wm_new) override;
 
 private:
 
   su2double C;  /*!< \brief Constant to match the Reichardt BL profile. */
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
 
   /*!
    * \brief Default constructor of the class, disabled.
    */
   CWallModelLogLaw(void);
+};
+
+class CWallModelAlgebraic : public CWallModel {
+
+public:
+
+  /*!
+   * \brief Constructor of the class, which initializes the object.
+   * \param[in] config     - Definition of the particular problem.
+   * \param[in] Marker_Tag - String, which identifies the boundary marker for
+                             which the wall model is used.
+   */
+  CWallModelAlgebraic(CConfig      *config,
+                   const string &Marker_Tag);
+
+  /*!
+   * \brief Function, which computes the wall shear stress and heat flux
+   from the data at the exchange location.
+   * \param[in]  tExchange              - Temperature at the exchange location.
+   * \param[in]  velExchange            - Velocity at the exchange location.
+   * \param[in]  muExchange             - Laminar Viscosity at the exchange location.
+   * \param[in]  pExchange              - Pressure at the exchange location.
+   * \param[in]  dPds                   - Pressure gradient in the tangent direction.
+   * \param[in]  Wall_HeatFlux          - Value of the wall heat flux, if prescribed.
+   * \param[in]  HeatFlux_Prescribed    - Whether or not the wall heat flux is prescribed.
+   * \param[in]  Wall_Temperature       - Value of the wall temperature, if prescribed.
+   * \param[in]  Temperature_Prescribed - Wheter or not the wall temperature is prescribed.
+   * \param[in]  FluidModel             - Fluid model used in the solver.
+   * \param[out] tauWall                - Wall shear stress, to be computed.
+   * \param[out] qWall                  - Wall hear flux, to be computed (if not prescribed).
+   * \param[out] ViscosityWall          - Laminar viscosity at the wall, to be computed.
+   * \param[out] kOverCvWall             - Thermal conductivity divided by Cv at the wall,
+   to be computed.
+   */
+  void WallShearStressAndHeatFlux(const su2double tExchange,
+                                  const su2double velExchange,
+                                  const su2double muExchange,
+                                  const su2double pExchange,
+                                  const su2double dPds,
+                                  const su2double Wall_HeatFlux,
+                                  const bool      HeatFlux_Prescribed,
+                                  const su2double Wall_Temperature,
+                                  const bool      Temperature_Prescribed,
+                                  CFluidModel     *FluidModel,
+                                  su2double       &tauWall,
+                                  su2double       &qWall,
+                                  su2double       &ViscosityWall,
+                                  su2double       &kOverCvWall,
+                                  bool            &converged) override;
+
+ /*!
+  * \brief Updates the wall model exchange location.
+  * \param[in]  h_wm_new              - Updated exchanged location
+  */
+  void UpdateExchangeLocation(const su2double h_wm_new) override;
+
+private:
+
+  su2double C;  /*!< \brief Constant to match the Reichardt BL profile. */
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
+
+  /*!
+   * \brief Default constructor of the class, disabled.
+   */
+  CWallModelAlgebraic(void);
+};
+
+class CWallModelAPGLL : public CWallModel {
+
+public:
+
+  /*!
+   * \brief Constructor of the class, which initializes the object.
+   * \param[in] config     - Definition of the particular problem.
+   * \param[in] Marker_Tag - String, which identifies the boundary marker for
+                             which the wall model is used.
+   */
+  CWallModelAPGLL(CConfig      *config,
+                   const string &Marker_Tag);
+
+  /*!
+   * \brief Function, which computes the wall shear stress and heat flux
+   from the data at the exchange location.
+   * \param[in]  tExchange              - Temperature at the exchange location.
+   * \param[in]  velExchange            - Velocity at the exchange location.
+   * \param[in]  muExchange             - Laminar Viscosity at the exchange location.
+   * \param[in]  pExchange              - Pressure at the exchange location.
+   * \param[in]  dPds                   - Pressure gradient in the tangent direction.
+   * \param[in]  Wall_HeatFlux          - Value of the wall heat flux, if prescribed.
+   * \param[in]  HeatFlux_Prescribed    - Whether or not the wall heat flux is prescribed.
+   * \param[in]  Wall_Temperature       - Value of the wall temperature, if prescribed.
+   * \param[in]  Temperature_Prescribed - Wheter or not the wall temperature is prescribed.
+   * \param[in]  FluidModel             - Fluid model used in the solver.
+   * \param[out] tauWall                - Wall shear stress, to be computed.
+   * \param[out] qWall                  - Wall hear flux, to be computed (if not prescribed).
+   * \param[out] ViscosityWall          - Laminar viscosity at the wall, to be computed.
+   * \param[out] kOverCvWall             - Thermal conductivity divided by Cv at the wall,
+   to be computed.
+   */
+  void WallShearStressAndHeatFlux(const su2double tExchange,
+                                  const su2double velExchange,
+                                  const su2double muExchange,
+                                  const su2double pExchange,
+                                  const su2double dPds,
+                                  const su2double Wall_HeatFlux,
+                                  const bool      HeatFlux_Prescribed,
+                                  const su2double Wall_Temperature,
+                                  const bool      Temperature_Prescribed,
+                                  CFluidModel     *FluidModel,
+                                  su2double       &tauWall,
+                                  su2double       &qWall,
+                                  su2double       &ViscosityWall,
+                                  su2double       &kOverCvWall,
+                                  bool            &converged) override;
+
+ /*!
+  * \brief Updates the wall model exchange location.
+  * \param[in]  h_wm_new              - Updated exchanged location
+  */
+  void UpdateExchangeLocation(const su2double h_wm_new) override;
+
+private:
+
+  su2double C;  /*!< \brief Constant to match the Reichardt BL profile. */
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
+
+  /*!
+   * \brief Default constructor of the class, disabled.
+   */
+  CWallModelAPGLL(void);
+};
+
+class CWallModelTemplate : public CWallModel {
+
+public:
+
+  /*!
+   * \brief Constructor of the class, which initializes the object.
+   * \param[in] config     - Definition of the particular problem.
+   * \param[in] Marker_Tag - String, which identifies the boundary marker for
+                             which the wall model is used.
+   */
+  CWallModelTemplate(CConfig      *config,
+                   const string &Marker_Tag);
+
+  /*!
+   * \brief Function, which computes the wall shear stress and heat flux
+   from the data at the exchange location.
+   * \param[in]  tExchange              - Temperature at the exchange location.
+   * \param[in]  velExchange            - Velocity at the exchange location.
+   * \param[in]  muExchange             - Laminar Viscosity at the exchange location.
+   * \param[in]  pExchange              - Pressure at the exchange location.
+   * \param[in]  dPds                   - Pressure gradient in the tangent direction.
+   * \param[in]  Wall_HeatFlux          - Value of the wall heat flux, if prescribed.
+   * \param[in]  HeatFlux_Prescribed    - Whether or not the wall heat flux is prescribed.
+   * \param[in]  Wall_Temperature       - Value of the wall temperature, if prescribed.
+   * \param[in]  Temperature_Prescribed - Wheter or not the wall temperature is prescribed.
+   * \param[in]  FluidModel             - Fluid model used in the solver.
+   * \param[out] tauWall                - Wall shear stress, to be computed.
+   * \param[out] qWall                  - Wall hear flux, to be computed (if not prescribed).
+   * \param[out] ViscosityWall          - Laminar viscosity at the wall, to be computed.
+   * \param[out] kOverCvWall             - Thermal conductivity divided by Cv at the wall,
+   to be computed.
+   */
+  void WallShearStressAndHeatFlux(const su2double tExchange,
+                                  const su2double velExchange,
+                                  const su2double muExchange,
+                                  const su2double pExchange,
+                                  const su2double dPds,
+                                  const su2double Wall_HeatFlux,
+                                  const bool      HeatFlux_Prescribed,
+                                  const su2double Wall_Temperature,
+                                  const bool      Temperature_Prescribed,
+                                  CFluidModel     *FluidModel,
+                                  su2double       &tauWall,
+                                  su2double       &qWall,
+                                  su2double       &ViscosityWall,
+                                  su2double       &kOverCvWall,
+                                  bool            &converged) override;
+
+ /*!
+  * \brief Updates the wall model exchange location.
+  * \param[in]  h_wm_new              - Updated exchanged location
+  */
+  void UpdateExchangeLocation(const su2double h_wm_new) override;
+
+private:
+
+  su2double C;  /*!< \brief Constant to match the Reichardt BL profile. */
+  su2double h_wm;    /*!< \brief The thickness of the wall model. This is also basically the exchange location */
+
+  /*!
+   * \brief Default constructor of the class, disabled.
+   */
+  CWallModelTemplate(void);
 };

@@ -438,10 +438,23 @@ CNumerics::ResidualType<> CAvgGrad_Flow::ComputeResidual(const CConfig* config) 
 
   /*--- Wall shear stress values (wall functions) ---*/
 
-  if (TauWall_i > 0.0 && TauWall_j > 0.0) Mean_TauWall = 0.5*(TauWall_i + TauWall_j);
-  else if (TauWall_i > 0.0) Mean_TauWall = TauWall_i;
-  else if (TauWall_j > 0.0) Mean_TauWall = TauWall_j;
-  else Mean_TauWall = -1.0;
+  bool UseWallFunction;
+  if (TauWallFlag_i && TauWallFlag_j){
+     UseWallFunction = false;
+     Mean_TauWall = 0.0;
+   }
+   else if (TauWallFlag_i && !TauWallFlag_j){
+     UseWallFunction = true;
+     Mean_TauWall = TauWall_i;
+   }
+   else if (!TauWallFlag_i && TauWallFlag_j){
+     UseWallFunction = true;
+     Mean_TauWall = TauWall_j;
+   }
+   else{
+     UseWallFunction = false;
+     Mean_TauWall = 0.0;
+   }
 
   /* --- If using UQ methodology, set Reynolds Stress tensor and perform perturbation--- */
 
@@ -456,7 +469,7 @@ CNumerics::ResidualType<> CAvgGrad_Flow::ComputeResidual(const CConfig* config) 
   SetStressTensor(Mean_PrimVar, Mean_GradPrimVar, Mean_turb_ke,
          Mean_Laminar_Viscosity, Mean_Eddy_Viscosity);
   if (config->GetQCR()) AddQCR(nDim, &Mean_GradPrimVar[1], tau);
-  if (Mean_TauWall > 0) AddTauWall(Normal, Mean_TauWall);
+  if (UseWallFunction) AddTauWall(Normal, Mean_TauWall);
 
   SetHeatFluxVector(Mean_GradPrimVar, Mean_Laminar_Viscosity,
                     Mean_Eddy_Viscosity);
