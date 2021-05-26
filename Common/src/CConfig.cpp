@@ -2696,7 +2696,7 @@ void CConfig::SetConfig_Options() {
   addBoolOption("WMLES_MONITORING", WMLES_Monitoring, false);  
 
   /* DESCRIPTION: Activate WMLES 1st Point OFF WALL */
-  addBoolOption("WMLES_FIRST_POINT", WMLES_First_Point, false);
+  addBoolOption("WMLES_FIRST_POINT", WMLES_First_Point, true);
 
   /* DESCRIPTION: Compute Average for unsteady simulations */
   addBoolOption("COMPUTE_AVERAGE", Compute_Average, false);
