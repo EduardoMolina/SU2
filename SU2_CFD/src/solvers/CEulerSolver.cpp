@@ -2076,6 +2076,19 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   const bool limiter          = (config->GetKind_SlopeLimit_Flow() != NO_LIMITER);
   const bool van_albada       = (config->GetKind_SlopeLimit_Flow() == VAN_ALBADA_EDGE);
 
+  const bool hybrid_central_upwind = (config->GetHybrid_Central_Upwind() && (iMesh == MESH_0));
+  su2double Proj_Flux[5] = {0.0};
+  su2double **Proj_Flux_Jac_i=nullptr, **Proj_Flux_Jac_j=nullptr;
+  if (hybrid_central_upwind){
+    Proj_Flux_Jac_i = new su2double*[nVar];
+    Proj_Flux_Jac_j = new su2double*[nVar];
+    for (auto iVar = 0u; iVar < nVar; iVar++)
+    {
+      Proj_Flux_Jac_i[iVar] = new su2double[nVar];
+      Proj_Flux_Jac_j[iVar] = new su2double[nVar];
+    }
+  }
+
   /*--- Non-physical counter. ---*/
   unsigned long counter_local = 0;
   SU2_OMP_MASTER
@@ -2097,7 +2110,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
 
     auto iEdge = color.indices[k];
 
-    unsigned short iDim, iVar;
+    unsigned short iDim, iVar, jVar;
 
     /*--- Points in edge and normal vectors ---*/
 
@@ -2250,18 +2263,77 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
 
     /*--- Update residual value ---*/
 
-    if (ReducerStrategy) {
-      EdgeFluxes.SetBlock(iEdge, residual);
-      if (implicit)
-        Jacobian.SetBlocks(iEdge, residual.jacobian_i, residual.jacobian_j);
-    }
-    else {
-      LinSysRes.AddBlock(iPoint, residual);
-      LinSysRes.SubtractBlock(jPoint, residual);
+    if (hybrid_central_upwind)
+    {
+      su2double Vector_ij[MAXNDIM] = {0.0};
+      for (iDim = 0; iDim < nDim; iDim++) {
+        Vector_ij[iDim] = 0.5*(Coord_j[iDim] - Coord_i[iDim]);
+      }
+      
+      auto Normal_ij  = geometry->edges->GetNormal(iEdge);
+      auto Gradient_i = nodes->GetGradient_Reconstruction(iPoint);
+      auto Gradient_j = nodes->GetGradient_Reconstruction(jPoint);
 
-      /*--- Set implicit computation ---*/
-      if (implicit)
-        Jacobian.UpdateBlocks(iEdge, iPoint, jPoint, residual.jacobian_i, residual.jacobian_j);
+      for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+
+        su2double Project_Grad_i = 0.0;
+        su2double Project_Grad_j = 0.0;
+
+        for (iDim = 0; iDim < nDim; iDim++) {
+          Project_Grad_i += Vector_ij[iDim]*Gradient_i[iVar][iDim];
+          Project_Grad_j -= Vector_ij[iDim]*Gradient_j[iVar][iDim];
+        }
+        Primitive_i[iVar] = V_i[iVar] + Project_Grad_i;
+        Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
+      }
+
+      numerics->GetInviscidProjFlux_KEEP(V_i , V_j, Normal_ij, Proj_Flux, Proj_Flux_Jac_i);
+
+      for (iVar = 0; iVar < nVar; iVar++){
+        for (jVar = 0; jVar < nVar; jVar++){
+          Proj_Flux_Jac_j[iVar][jVar] = Proj_Flux_Jac_i[iVar][jVar];
+        }
+      }
+      
+      su2double Sigma = config->GetMin_LowDissipation();
+      
+      for (iVar = 0; iVar < nVar; iVar++)
+      {
+        Proj_Flux[iVar] =  (1. - Sigma)*Proj_Flux[iVar] + Sigma * residual[iVar];
+        for (jVar = 0; jVar < nVar; jVar++)
+        {
+          Proj_Flux_Jac_i[iVar][jVar] = (1. - Sigma) * Proj_Flux_Jac_i[iVar][jVar] + Sigma * residual.jacobian_i[iVar][jVar];
+          Proj_Flux_Jac_j[iVar][jVar] = (1. - Sigma) * Proj_Flux_Jac_j[iVar][jVar] + Sigma * residual.jacobian_j[iVar][jVar];
+        }
+      }
+      if (ReducerStrategy) {
+        EdgeFluxes.SetBlock(iEdge, Proj_Flux);
+        if (implicit)
+          Jacobian.SetBlocks(iEdge, Proj_Flux_Jac_i, Proj_Flux_Jac_j);
+      }
+      else {
+        LinSysRes.AddBlock(iPoint, Proj_Flux);
+        LinSysRes.SubtractBlock(jPoint, Proj_Flux);
+
+        /*--- Set implicit computation ---*/
+        if (implicit)
+          Jacobian.UpdateBlocks(iEdge, iPoint, jPoint, Proj_Flux_Jac_i, Proj_Flux_Jac_j);
+      }
+    }else
+    {
+      if (ReducerStrategy) {
+        EdgeFluxes.SetBlock(iEdge, residual);
+        if (implicit)
+          Jacobian.SetBlocks(iEdge, residual.jacobian_i, residual.jacobian_j);
+      }
+      else {
+        LinSysRes.AddBlock(iPoint, residual);
+        LinSysRes.SubtractBlock(jPoint, residual);
+
+        /*--- Set implicit computation ---*/
+        if (implicit)
+          Jacobian.UpdateBlocks(iEdge, iPoint, jPoint, residual.jacobian_i, residual.jacobian_j);
+      }
     }
 
     /*--- Viscous contribution. ---*/
@@ -2293,7 +2365,16 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
     }
     SU2_OMP_BARRIER
   }
-
+  
+  if (hybrid_central_upwind){
+    for (auto iVar = 0u; iVar < nVar; iVar++)
+    {
+      delete [] Proj_Flux_Jac_i[iVar];
+      delete [] Proj_Flux_Jac_j[iVar];
+    }
+    delete [] Proj_Flux_Jac_i;
+    delete [] Proj_Flux_Jac_j;
+  }
 }
 
 void CEulerSolver::ComputeConsistentExtrapolation(CFluidModel *fluidModel, unsigned short nDim,

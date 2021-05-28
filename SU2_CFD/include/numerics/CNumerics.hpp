@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * \file CNumerics.hpp
  * \brief Delaration of the base numerics class, the
  *        implementation is in the CNumerics.cpp file.
@@ -994,6 +994,10 @@ public:
   void GetInviscidProjFlux(const su2double *val_density, const su2double *val_velocity,
                            const su2double *val_pressure, const su2double *val_enthalpy,
                            const su2double *val_normal, su2double *val_Proj_Flux) const;
+  
+  void GetInviscidProjFlux_KEEP(const su2double *val_primitive_i, const su2double *val_primitive_j,
+                                const su2double *val_normal, su2double *val_Proj_Flux,
+                                su2double **val_Proj_Jac_tensor) const;
 
   /*!
    * \brief Compute the projected inviscid flux vector for incompresible simulations
